@@ -30,7 +30,7 @@ app.use(express.json());
     // Process files after DB connection
     // readExcelFile();
     startPdfProcessing();
-
+    require("./useractivityreader");
     // Start server only after DB is ready
     app.listen(BASE_PORT, () => {
      console.log(`🚀 Server running on ${BASE_SERVER_URL}:${BASE_PORT}`);

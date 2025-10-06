@@ -58,8 +58,10 @@ const userCreationSchema = new mongoose.Schema({
             required: true,
         },
         
-        
-    
+         // New fields
+    currentLoginAt: { type: Date },   // latest login
+    lastLoginAt: { type: Date },      // previous login
+    last6MonthsStatus: { type: Boolean, default: true } // new field
     
 });
 

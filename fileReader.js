@@ -68,6 +68,6 @@ const readExcelFile = async () => {
 // readExcelFile();
 
 // Schedule to run every 5 minutes
-setInterval(readExcelFile, 1 * 60 * 1000); // 5 minutes in milliseconds
+// setInterval(readExcelFile, 1 * 60 * 1000); // 5 minutes in milliseconds
 
 module.exports = { readExcelFile };

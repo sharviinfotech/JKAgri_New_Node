@@ -72,7 +72,8 @@ const processAndSendPdfs = async () => {
           console.log(`✅ Uploaded: ${file} - ${res.data.message}`);
         })
         .catch(err => {
-          console.error(`🚨 Failed to upload ${file}:`, err?.response?.data || err.message);
+           console.log(`✅ Failed to upload File`);
+          // console.error(`🚨 Failed to upload ${file}:`, err?.response?.data || err.message);
         });
     }));
 

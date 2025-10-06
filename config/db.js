@@ -1,11 +1,11 @@
 const mongoose = require('mongoose');
 
-// const uri = "mongodb+srv://paramesh:do7zSGvCunwKJORR@cluster0.e4oz0ms.mongodb.net/JK_AGRI";
+ const uri = "mongodb+srv://paramesh:do7zSGvCunwKJORR@cluster0.e4oz0ms.mongodb.net/JK_AGRI";
 // const uri = "mongodb://SharviDb:Sharvi%401234@192.168.1.4:27017/JK_AGRI?authSource=admin&ssl=false";
 // const uri = "mongodb://plantserver%5Cplant:JKal%402023@192.168.13.64:27017/JK_Agri_Database?authSource=admin&ssl=false";
 // const uri = "mongodb://192.168.13.64:27017/JK_Agri_Database?authSource=admin&ssl=false";
 // const uri = "mongodb://jk_user:jk_pass123@192.168.13.64:27017/JK_Agri_Database?authSource=JK_Agri_Database";
-   const uri = "mongodb://jk_user:jk_pass123@192.168.13.64:27017/JK_Agri_Database?authSource=JK_Agri_Database";
+// const uri = "mongodb://jk_user:jk_pass123@192.168.13.64:27017/JK_Agri_Database?authSource=JK_Agri_Database";
 
 
 

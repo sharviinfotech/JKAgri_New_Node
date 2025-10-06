@@ -1,5 +1,5 @@
 const axios = require('axios');
-const { userCreation,userCount, xlsxCreation,pdfCreate } = require('../models/userCreationModel');
+const { userCreation, userCount, xlsxCreation, pdfCreate } = require('../models/userCreationModel');
 const bcrypt = require('bcrypt');
 const jwt = require("jsonwebtoken");
 const moment = require('moment');
@@ -7,46 +7,115 @@ const nodemailer = require('nodemailer');
 // const { sendInvoiceDataToEmail } = require('../fetchInvoiceFolder/sendInvoiceToMail'); // Import email function
 const recevieInvoiceSendToMail = require('../fetchInvoiceFolder/intialmailsend');
 const { sql, config } = require('../config/db');
+const { userLast6Months } = require("../baseFile");
+function formatDate(date) {
+    if (!date) return null;
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
 
+    let hours = date.getHours();
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const ampm = hours >= 12 ? 'pm' : 'am';
+    hours = hours % 12 || 12;
+
+    return `${day}/${month}/${year}, ${hours}:${minutes} ${ampm}`;
+}
 
 module.exports = (() => {
     return {
 
 
 
+        // userLogin: async (req, res) => {
+        //     try {
+        //         const { userName, userPassword } = req.body; // Get username and password
+        //         console.log("userName", userName, userPassword);
+
+        //         const user = await userCreation.findOne({ userName }); // Find user by username
+        //         console.log("user", user)
+        //         if (!user) {
+        //             return res.status(404).json({
+        //                 message: "User Not Found. Please enter a valid User",
+        //                 status: 404,
+        //                 isValid: false
+        //             });
+        //         }
+        //         let obj = {
+        //             userName: user.userName,
+        //             userFirstName: user.userFirstName,
+        //             userLastName: user.userLastName,
+        //             userEmail: user.userEmail,
+        //             userUniqueId: user.userUniqueId,
+        //             userStatus: user.userStatus,
+        //             isValid: user.userStatus,
+        //             userActivity: user.userActivity
+        //         }
+        //         console.log("password", userPassword, "user.userPassword", user.userPassword);
+        //         if (user.userStatus == false) {
+        //             return res.status(200).json({
+        //                 message: "User Not In Active",
+        //                 status: 200,
+        //                 data: obj,
+        //             });
+        //         }
+        //         // Compare plain password directly
+        //         if (userPassword !== user.userPassword) {
+        //             return res.status(400).json({
+        //                 message: "Invalid Credentials",
+        //                 status: 400,
+        //                 isValid: false
+        //             });
+        //         }
+
+        //         const token = jwt.sign(
+        //             { id: user._id, userName: user.userName }, // JWT payload with username
+        //             process.env.JWT_SECRET || "your_jwt_secret",
+        //             { expiresIn: "1h" }
+        //         );
+
+
+
+        //         res.status(200).json({
+        //             message: "Login Successful",
+        //             status: 200,
+        //             data: obj,
+        //             token
+        //         });
+        //     } catch (error) {
+        //         res.status(500).json({ message: "Server Error", status: 500, isValid: false, error: error.message });
+        //     }
+        // },
         userLogin: async (req, res) => {
             try {
-                const { userName, userPassword } = req.body; // Get username and password
-                console.log("userName", userName, userPassword);
+                const { userName, userPassword } = req.body;
+                const user = await userCreation.findOne({ userName });
+                const now = new Date();
 
-                const user = await userCreation.findOne({ userName }); // Find user by username
-                console.log("user", user)
                 if (!user) {
                     return res.status(404).json({
-                        message: "User Not Found. Please enter a valid User",
+                        message: "User Not Found",
                         status: 404,
                         isValid: false
                     });
                 }
-                let obj = {
-                    userName: user.userName,
-                    userFirstName: user.userFirstName,
-                    userLastName: user.userLastName,
-                    userEmail: user.userEmail,
-                    userUniqueId: user.userUniqueId,
-                    userStatus: user.userStatus,
-                    isValid: user.userStatus,
-                    userActivity: user.userActivity
-                }
-                console.log("password", userPassword, "user.userPassword", user.userPassword);
-                if (user.userStatus == false) {
-                    return res.status(200).json({
-                        message: "User Not In Active",
-                        status: 200,
-                        data: obj,
+                if (user.userStatus == false && user.last6MonthsStatus == false) {
+                    return res.status(403).json({
+                        message: "You have not logged in for the last 5 minutes (testing mode). Your account has been inactivated.",
+                        status: 403,
+                        isValid: false
                     });
                 }
-                // Compare plain password directly
+                // Check admin controlled status
+                if (!user.userStatus) {
+                    return res.status(403).json({
+                        message: "User Not Active. Contact admin.",
+                        status: 403,
+                        isValid: false
+                    });
+                }
+
+                // Compare password
                 if (userPassword !== user.userPassword) {
                     return res.status(400).json({
                         message: "Invalid Credentials",
@@ -55,13 +124,73 @@ module.exports = (() => {
                     });
                 }
 
+                const PRODUCTION = userLast6Months; // true = prod, false = testing
+
+                // For non-admin users, check inactivity
+                if (user.userActivity === 'USER') {
+                    console.log("Enter into User");
+                    let lastLogin = user.currentLoginAt || now;
+
+                    // 🔹 Difference calculation
+                    let inactiveTime;
+                    if (PRODUCTION) {
+                        // Production: 6 months inactivity
+                        inactiveTime = (1000 * 60 * 60 * 24 * 30 * 6); // 6 months in milliseconds
+                    } else {
+                        // Testing: 5 minutes inactivity
+                        inactiveTime = (1000 * 60 * 5); // 5 minutes in milliseconds
+                    }
+
+                    if ((now - new Date(lastLogin)) >= inactiveTime) {
+                        user.userStatus = false;
+                        user.last6MonthsStatus = false;
+                        await user.save();
+
+                        return res.status(403).json({
+                            message: PRODUCTION
+                                ? "You have not logged in for the last 6 months. Your account has been inactivated."
+                                : "You have not logged in for the last 5 minutes (testing mode). Your account has been inactivated.",
+                            status: 403,
+                            isValid: false
+                        });
+                    } else {
+                        user.last6MonthsStatus = true;
+                    }
+
+                    // Update login timestamps for all users (ADMIN & USER)
+                    user.lastLoginAt = user.currentLoginAt || now;
+                    user.currentLoginAt = now;
+
+                } else {
+                    console.log("Enter into Admin");
+                    // Update login timestamps for all users (ADMIN & USER)
+                    user.lastLoginAt = user.currentLoginAt || now;
+                    user.currentLoginAt = now;
+                    user.last6MonthsStatus = true;
+                }
+
+
+                await user.save();
+
+                const obj = {
+                    userName: user.userName,
+                    userFirstName: user.userFirstName,
+                    userLastName: user.userLastName,
+                    userEmail: user.userEmail,
+                    userUniqueId: user.userUniqueId,
+                    userStatus: user.userStatus,
+                    isValid: user.userStatus,
+                    userActivity: user.userActivity,
+                    currentLoginAt: formatDate(user.currentLoginAt),
+                    lastLoginAt: formatDate(user.lastLoginAt),
+                    last6MonthsStatus: user.last6MonthsStatus
+                };
+
                 const token = jwt.sign(
-                    { id: user._id, userName: user.userName }, // JWT payload with username
+                    { id: user._id, userName: user.userName },
                     process.env.JWT_SECRET || "your_jwt_secret",
                     { expiresIn: "1h" }
                 );
-
-
 
                 res.status(200).json({
                     message: "Login Successful",
@@ -69,10 +198,18 @@ module.exports = (() => {
                     data: obj,
                     token
                 });
+
             } catch (error) {
-                res.status(500).json({ message: "Server Error", status: 500, isValid: false, error: error.message });
+                res.status(500).json({
+                    message: "Server Error",
+                    status: 500,
+                    isValid: false,
+                    error: error.message
+                });
             }
         },
+
+
 
         forgotPassword: async (req, res) => {
 
@@ -147,13 +284,13 @@ module.exports = (() => {
         // xlsxSubmit: async (req, res) => {
         //     try {
         //         const xlsxList = req.body;
-        
+
         //         console.log('xlsxList reqbody:', xlsxList.xlsxList);
-        
+
         //         if (!Array.isArray(xlsxList.xlsxList) || xlsxList.xlsxList.length === 0) {
         //             return res.status(400).json({ message: "Invalid data received", status: 400 });
         //         }
-        
+
         //         // Transforming keys to match schema before saving
         //         const transformedData = xlsxList.xlsxList.map(item => ({
         //             serialNo: item['S.No'],        // Renamed field
@@ -162,10 +299,10 @@ module.exports = (() => {
         //             department: item.Department,   // Matches schema
         //             contractor: item.Contractor || "Unknown" // Ensure contractor field
         //         }));
-        
+
         //         let insertedCount = 0;
         //         let updatedCount = 0;
-        
+
         //         for (const data of transformedData) {
         //             // Check if a record with the same serialNo and codeNo exists
         //             const existingRecord = await xlsxCreation.findOneAndUpdate(
@@ -173,7 +310,7 @@ module.exports = (() => {
         //                 { $set: { 'xlsxList.$': data } },  // Update the matched record
         //                 { new: true } // Return updated record
         //             );
-        
+
         //             if (existingRecord) {
         //                 updatedCount++;
         //             } else {
@@ -186,14 +323,14 @@ module.exports = (() => {
         //                 insertedCount++;
         //             }
         //         }
-        
+
         //         return res.status(200).json({
         //             message: `XLSX data processed successfully`,
         //             inserted: insertedCount,
         //             updated: updatedCount,
         //             status: 200,
         //         });
-        
+
         //     } catch (err) {
         //         console.error("Error saving data:", err);
         //         return res.status(500).json({
@@ -203,14 +340,14 @@ module.exports = (() => {
         //         });
         //     }
         // },
-    
+
         // API to Fetch Data
         // getXlsx: async (req, res) => {
         //     try {
         //         const result = await xlsxCreation.find();
         //         console.log("Fetched Data:", result);
 
-                
+
 
         //         return res.status(200).json({
         //             responseData: result,
@@ -232,218 +369,299 @@ module.exports = (() => {
         //     console.log("pdfSubmit req.body", req.body);
         //     try {
         //         const { fileName, fileData } = req.body;
-        
+
         //         if (!fileName || !fileData) {
         //             return res.status(400).json({ message: "Missing fileName or fileData" });
         //         }
-        
+
         //         // ✅ Extract pdfName (Remove ".pdf" extension)
         //         const pdfName = fileName.replace(/\.pdf$/i, "");
-        
+
         //         // ✅ Prevent duplicates
         //         const existingPdf = await pdfCreate.findOne({ fileName });
         //         if (existingPdf) {
         //             return res.status(409).json({ message: "PDF already exists" });
         //         }
-        
+
         //         // ✅ Save to DB with pdfName
         //         const newPdf = new pdfCreate({ fileName, pdfName, fileData });
         //         await newPdf.save();
-        
+
         //         return res.status(201).json({ message: "PDF saved successfully", pdfName });
-        
+
         //     } catch (error) {
         //         console.error("🚨 Error saving PDF:", error);
         //         return res.status(500).json({ message: "Failed to save PDF", error: error.message });
         //     }
         // },
-        
-            // API to Fetch Data
-           // API to Fetch Data or Check if PDF Exists
-           pdfSubmit: async (req, res) => {
-            console.log("pdfSubmit req.body", req.body);
+
+        // API to Fetch Data
+        // API to Fetch Data or Check if PDF Exists
+        pdfSubmit: async (req, res) => {
             try {
                 const { fileName, fileData } = req.body;
-        
                 if (!fileName || !fileData) {
                     return res.status(400).json({ message: "Missing fileName or fileData" });
                 }
-        
-                // ✅ Extract pdfName (Remove ".pdf" extension)
+
                 const pdfName = fileName.replace(/\.pdf$/i, "");
-        
-                // ✅ Dynamically extract the last "MM_YYYY" occurrence
-                const monthYearRegex = /(?:0[1-9]|1[0-2])_\d{4}/g; // Matches "01_2024" to "12_9999"
-                const matches = pdfName.match(monthYearRegex);
-                const monthAndYear = matches ? matches[matches.length - 1] : null; // Take the last match
-        
+                let monthAndYear = null;
+
+                // 1️⃣ DD.MM.YYYY
+                let match = pdfName.match(/\d{2}[.]\d{2}[.]\d{4}/);
+                if (match) {
+                    monthAndYear = match[0]; // already correct
+                }
+
+                // 2️⃣ DD-MM-YYYY → convert to DD.MM.YYYY
+                if (!monthAndYear) {
+                    match = pdfName.match(/\d{2}[-]\d{2}[-]\d{4}/);
+                    if (match) {
+                        monthAndYear = match[0].replace(/-/g, '.');
+                    }
+                }
+
+                // 3️⃣ MM_YYYY → assume day = 01 → convert to DD.MM.YYYY
+                if (!monthAndYear) {
+                    match = pdfName.match(/(0[1-9]|1[0-2])_\d{4}/);
+                    if (match) {
+                        const [mon, yr] = match[0].split('_');
+                        monthAndYear = `01.${mon}.${yr}`;
+                    }
+                }
+
+                // 4️⃣ MM-YYYY → assume day = 01 → convert to DD.MM.YYYY
+                if (!monthAndYear) {
+                    match = pdfName.match(/(0[1-9]|1[0-2])-\d{4}/);
+                    if (match) {
+                        const [mon, yr] = match[0].split('-');
+                        monthAndYear = `01.${mon}.${yr}`;
+                    }
+                }
+
                 // ✅ Prevent duplicates
                 const existingPdf = await pdfCreate.findOne({ fileName });
                 if (existingPdf) {
                     return res.status(409).json({ message: "PDF already exists" });
                 }
-        
-                // ✅ Save to DB with pdfName and monthAndYear
+
+                // ✅ Save with DD.MM.YYYY format
                 const newPdf = new pdfCreate({ fileName, pdfName, fileData, monthAndYear });
                 await newPdf.save();
-        
+
                 return res.status(201).json({ message: "PDF saved successfully", pdfName, monthAndYear });
-        
+
             } catch (error) {
                 console.error("🚨 Error saving PDF:", error);
                 return res.status(500).json({ message: "Failed to save PDF", error: error.message });
             }
         },
-        
-        
-        
 
-           getPdf: async (req, res) => {
-    try {
-        const { fileName } = req.query;
-        if (!fileName) {
-            return res.status(400).json({ message: "Missing fileName", status: 400 });
-        }
 
-        const pdfData = await pdfCreate.findOne({ fileName });
 
-        if (!pdfData) {
-            return res.status(200).json({ exists: false });
-        }
 
-        return res.status(200).json({ exists: true });
 
-    } catch (error) {
-        console.error("Error checking PDF:", error);
-        return res.status(500).json({ message: "Failed to check PDF", error: error.message });
-    }
-},
 
-userCreationSave: async (req, res) => {
-    console.log("userCreationSave", req, res)
-    try {
-        console.log("req.body", req.body);
-        const { userName, userFirstName, userLastName, userEmail, userContact, userPassword, userConfirmPassword, userStatus, userActivity } = req.body;
-        console.log("userPassword", userPassword, "userConfirmPassword", userConfirmPassword);
+        getPdf: async (req, res) => {
+            try {
+                const { fileName } = req.query;
+                if (!fileName) {
+                    return res.status(400).json({ message: "Missing fileName", status: 400 });
+                }
 
-        if (userPassword !== userConfirmPassword) {
-            return res.status(400).json({ message: "Passwords do not match", status: 400 });
-        }
+                const pdfData = await pdfCreate.findOne({ fileName });
 
-        const existingUser = await userCreation.findOne({ userEmail });
-        if (existingUser) {
-            return res.status(400).json({ message: "User with this email already exists", status: 400 });
-        }
+                if (!pdfData) {
+                    return res.status(200).json({ exists: false });
+                }
 
-        const counter = await userCount.findOneAndUpdate(
-            { name: "userUniqueId" },
-            { $inc: { value: 1 } },
-            { new: true, upsert: true, setDefaultsOnInsert: true }
-        );
-        const userUniqueId = counter.value;
-        console.log("userUniqueId", userUniqueId);
+                return res.status(200).json({ exists: true });
 
-        // Do NOT hash the password, save it as plain text
-        const userPayload = new userCreation({
-            userName,
-            userFirstName,
-            userLastName,
-            userEmail,
-            userContact,
-            userPassword, // Store plain text password
-            userConfirmPassword, // Store plain text confirm password (you might not need to save this)
-            userStatus,
-            userActivity,
-            userUniqueId
-        });
+            } catch (error) {
+                console.error("Error checking PDF:", error);
+                return res.status(500).json({ message: "Failed to check PDF", error: error.message });
+            }
+        },
 
-        const saveNewUser = await userPayload.save();
-        res.status(200).json({
-            message: "User Created Successfully",
-            data: {
-                userName: saveNewUser.userName,
-                userStatus: saveNewUser.userStatus,
-                userActivity: saveNewUser.userActivity,
-                userUniqueId: saveNewUser.userUniqueId
-            },
-            status: 200
-        });
-    } catch (error) {
-        res.status(500).json({ message: "Failed to save the user", status: 500, error: error.message });
-    }
-},
+        userCreationSave: async (req, res) => {
+            console.log("userCreationSave", req, res)
+            try {
+                console.log("req.body", req.body);
+                const { userName, userFirstName, userLastName, userEmail, userContact, userPassword, userConfirmPassword, userStatus, userActivity } = req.body;
+                console.log("userPassword", userPassword, "userConfirmPassword", userConfirmPassword);
 
-updateUserCreation: async (req, res) => {
-    try {
-        const { UniqueId } = req.params;
-        const updateUserData = req.body;
+                if (userPassword !== userConfirmPassword) {
+                    return res.status(400).json({ message: "Passwords do not match", status: 400 });
+                }
 
-        // If the password is being updated, keep it as plain text (no hashing)
-        if (updateUserData.userPassword) {
-            updateUserData.userPassword = updateUserData.userPassword; // Don't hash the password
-        }
+                const existingUser = await userCreation.findOne({ userEmail });
+                if (existingUser) {
+                    return res.status(400).json({ message: "User with this email already exists", status: 400 });
+                }
 
-        const updateUserObj = await userCreation.findOneAndUpdate(
-            { userUniqueId: UniqueId },
-            { $set: updateUserData },
-            { new: true, runValidators: true }
-        );
+                const counter = await userCount.findOneAndUpdate(
+                    { name: "userUniqueId" },
+                    { $inc: { value: 1 } },
+                    { new: true, upsert: true, setDefaultsOnInsert: true }
+                );
+                const userUniqueId = counter.value;
+                console.log("userUniqueId", userUniqueId);
 
-        if (!updateUserObj) {
-            return res.status(404).json({ message: "User Not Found", status: 404 });
-        }
+                const now = new Date();
 
-        res.status(200).json({ message: "User Updated Successfully", data: updateUserObj, status: 200 });
-    } catch (error) {
-        res.status(500).json({ message: "Update Failed", status: 500, error: error.message });
-    }
-},
+                const userPayload = new userCreation({
+                    userName,
+                    userFirstName,
+                    userLastName,
+                    userEmail,
+                    userContact,
+                    userPassword,         // plain text
+                    userConfirmPassword,  // optional
+                    userStatus,
+                    userActivity,
+                    userUniqueId,
+                    currentLoginAt: now,          // initialize to now
+                    lastLoginAt: null,            // no previous login yet
+                    last6MonthsStatus: true       // new user is active in last 6 months by default
+                });
 
-getAllUserLists: async (req, res) => {
-try {
-    const usersList = await userCreation.find()
-    console.log("usersList", usersList)
-    if (usersList.length === 0) {
-        res.json({
-            message: "No Data Available",
-            status: 200
-        })
-    }
-    res.json({
-        message: "User Data Fetched Successfully",
-        data: usersList,
-        status: 200
-    })
+                const saveNewUser = await userPayload.save();
+                res.status(200).json({
+                    message: "User Created Successfully",
+                    data: {
+                        userName: saveNewUser.userName,
+                        userStatus: saveNewUser.userStatus,
+                        userActivity: saveNewUser.userActivity,
+                        userUniqueId: saveNewUser.userUniqueId
+                    },
+                    status: 200
+                });
+            } catch (error) {
+                res.status(500).json({ message: "Failed to save the user", status: 500, error: error.message });
+            }
+        },
 
-} catch (error) {
 
-    res.json({
-        error: error.message
-    })
-}
-},
 
-allPdfList: async (req, res) => {
-    try {
-        const result = await pdfCreate.find();
-        console.log("Fetched Data:", result);
-        return res.status(200).json({
-            message: "PDF fetched successfully",
-            statusCode: 200,
-            responseCount:result.length,
-            responseData: result,
-            
-        });
+        updateUserCreation: async (req, res) => {
+            try {
+                const { UniqueId } = req.params;
+                const updateUserData = req.body;
 
-    } catch (err) {
-        console.error("Error fetching data:", err);
-        return res.status(500).json({
-            message: "Failed to fetch data",
-            error: err.message,
-            statusCode: 500,
-        });
-    }
-},
+                // If admin sets userStatus true, reset last6MonthsStatus and login timestamps
+                if (updateUserData.userStatus === true) {
+                    const now = new Date();
+                    updateUserData.last6MonthsStatus = true;
+                    updateUserData.currentLoginAt = now;
+                    updateUserData.lastLoginAt = now;
+                }
+
+                const updateUserObj = await userCreation.findOneAndUpdate(
+                    { userUniqueId: UniqueId },
+                    { $set: updateUserData },
+                    { new: true, runValidators: true }
+                );
+
+                if (!updateUserObj) {
+                    return res.status(404).json({ message: "User Not Found", status: 404 });
+                }
+
+                res.status(200).json({
+                    message: "User Updated Successfully",
+                    data: {
+                        ...updateUserObj.toObject(),
+                        currentLoginAt: formatDate(updateUserObj.currentLoginAt),
+                        lastLoginAt: formatDate(updateUserObj.lastLoginAt)
+                    },
+                    status: 200
+                });
+            } catch (error) {
+                res.status(500).json({ message: "Update Failed", status: 500, error: error.message });
+            }
+        },
+
+
+        // getAllUserLists: async (req, res) => {
+        //     try {
+        //         const usersList = await userCreation.find()
+        //         console.log("usersList", usersList)
+        //         if (usersList.length === 0) {
+        //             res.json({
+        //                 message: "No Data Available",
+        //                 status: 200
+        //             })
+        //         }
+        //         res.json({
+        //             message: "User Data Fetched Successfully",
+        //             data: usersList,
+        //             status: 200
+        //         })
+
+        //     } catch (error) {
+
+        //         res.json({
+        //             error: error.message
+        //         })
+        //     }
+        // },
+        getAllUserLists: async (req, res) => {
+            try {
+                const usersList = await userCreation.find();
+
+                if (!usersList.length) {
+                    return res.json({ message: "No Data Available", status: 200 });
+                }
+
+                const formattedUsers = usersList.map(user => ({
+                    _id: user._id,
+                    userUniqueId: user.userUniqueId,
+                    userName: user.userName,
+                    userFirstName: user.userFirstName,
+                    userLastName: user.userLastName,
+                    userEmail: user.userEmail,
+                    userContact: user.userContact,
+                    userStatus: user.userStatus,
+                    userActivity: user.userActivity,
+                    currentLoginAt: formatDate(user.currentLoginAt),
+                    lastLoginAt: formatDate(user.lastLoginAt),
+                    last6MonthsStatus: user.last6MonthsStatus,
+                    userPassword: user.userPassword,         // plain text
+                    userConfirmPassword: user.userConfirmPassword,
+                }));
+
+                res.json({
+                    message: "User Data Fetched Successfully",
+                    data: formattedUsers,
+                    status: 200
+                });
+
+            } catch (error) {
+                res.status(500).json({ message: "Server Error", status: 500, error: error.message });
+            }
+        },
+
+        allPdfList: async (req, res) => {
+            try {
+                const result = await pdfCreate.find();
+                console.log("Fetched Data:", result);
+                return res.status(200).json({
+                    message: "PDF fetched successfully",
+                    statusCode: 200,
+                    responseCount: result.length,
+                    responseData: result,
+
+                });
+
+            } catch (err) {
+                console.error("Error fetching data:", err);
+                return res.status(500).json({
+                    message: "Failed to fetch data",
+                    error: err.message,
+                    statusCode: 500,
+                });
+            }
+        },
+
 
     };
 })();
