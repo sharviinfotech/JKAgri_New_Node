@@ -10,7 +10,7 @@ const PORT = 3001;
 
 const BASE_SERVER_URL = `${SERVER_URL}`;
 const BASE_PORT = `${PORT}`;
-const userLast6Months = false;
+const userLast6Months = true;
 
 
 

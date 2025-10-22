@@ -7,8 +7,8 @@ const { BASE_SERVER_URL, BASE_PORT } = require("./baseFile");
 
 // const CHECK_PDF_API = `http://${BASE_SERVER_URL}:${BASE_PORT}/api/get/getPdf`;
 // const PDF_SUBMIT_API = `http://${BASE_SERVER_URL}:${BASE_PORT}/api/get/pdfSave`;
-const CHECK_PDF_API = `${BASE_SERVER_URL}:${BASE_PORT}/api/get/getPdf`;
-const PDF_SUBMIT_API = `${BASE_SERVER_URL}:${BASE_PORT}/api/get/pdfSave`;
+const CHECK_PDF_API = `${BASE_SERVER_URL}:${BASE_PORT}/api/JkAgri/getPdf`;
+const PDF_SUBMIT_API = `${BASE_SERVER_URL}:${BASE_PORT}/api/JkAgri/pdfSave`;
 
 
 // Main PDF processing function

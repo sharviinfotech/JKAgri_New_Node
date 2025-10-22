@@ -178,6 +178,40 @@ const pdfSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 
+const QueriesSchema = new mongoose.Schema({
+
+    QueriesUniqueId:{
+        type: Number,
+        required: true,
+        unique:true
+    } ,
+    CustomerName:{
+        type:String,
+        required:true
+    },
+    CustomerId:{
+        type:String,
+        required:true
+    },
+    Queries:{
+        type:String,
+        required:true
+    },
+   sentDateTimeAt: { type: Date }, 
+})
+const QueriesCountSchema = new mongoose.Schema({
+    name: {
+        type: String,
+        required: false,
+        unique: true,
+    },
+ 
+    value: {
+        type: Number,
+        default: 800,
+    },
+});
+
 
 const userCreation =mongoose.model('userCreation',userCreationSchema);
 const userCount = mongoose.model('userCount',userCountSchema);
@@ -189,8 +223,9 @@ const xlsxCreation= mongoose.model('xlsxData',capturedXlsxSchema)
 // const pdfCreate = mongoose.model('Pdf', pdfSchema);
 const pdfCreate = mongoose.model('All_Pdfs_Data', pdfSchema);
 
-
+const QueriesData =mongoose.model('QueriesData',QueriesSchema);
+const QueriesCount = mongoose.model('QueriesCount',QueriesCountSchema);
 
 
 // Export as an object
-module.exports = { userCreation,userCount,customerCreation,customerCount,chargesCreation,chargesCount,xlsxCreation,pdfCreate};
+module.exports = { userCreation,userCount,customerCreation,customerCount,chargesCreation,chargesCount,xlsxCreation,pdfCreate,QueriesData,QueriesCount};

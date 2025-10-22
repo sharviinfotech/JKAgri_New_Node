@@ -1,5 +1,5 @@
 const axios = require('axios');
-const { userCreation, userCount, xlsxCreation, pdfCreate } = require('../models/userCreationModel');
+const { userCreation, userCount, xlsxCreation, pdfCreate, QueriesData, QueriesCount } = require('../models/userCreationModel');
 const bcrypt = require('bcrypt');
 const jwt = require("jsonwebtoken");
 const moment = require('moment');
@@ -8,6 +8,7 @@ const nodemailer = require('nodemailer');
 const recevieInvoiceSendToMail = require('../fetchInvoiceFolder/intialmailsend');
 const { sql, config } = require('../config/db');
 const { userLast6Months } = require("../baseFile");
+const { sendQueryMail } = require("../mailService");
 function formatDate(date) {
     if (!date) return null;
     const day = String(date.getDate()).padStart(2, '0');
@@ -116,6 +117,7 @@ module.exports = (() => {
                 }
 
                 // Compare password
+                console.log("userPassword",userPassword,user)
                 if (userPassword !== user.userPassword) {
                     return res.status(400).json({
                         message: "Invalid Credentials",
@@ -577,6 +579,51 @@ module.exports = (() => {
                 });
             } catch (error) {
                 res.status(500).json({ message: "Update Failed", status: 500, error: error.message });
+            }
+        },
+        QueriesSave: async (req, res) => {
+            try {
+                console.log("req.body", req.body);
+                const { CustomerName, CustomerId, Queries } = req.body;
+
+                // Increment counter atomically
+                let counter = await QueriesCount.findOneAndUpdate(
+                    { name: "QueriesUniqueId" },
+                    { $inc: { value: 1 } },
+                    { new: true, upsert: true, setDefaultsOnInsert: true }
+                );
+
+                const QueriesUniqueId = counter.value;
+
+                const now = new Date();
+
+                const queryPayload = new QueriesData({
+                    QueriesUniqueId,
+                    CustomerName,
+                    CustomerId,
+                    Queries,
+                    sentDateTimeAt: now,
+                });
+
+                await queryPayload.save();
+
+                // Send email
+                const mailSent = await sendQueryMail({ CustomerName, CustomerId, Queries });
+
+                res.status(200).json({
+                    message: mailSent
+                        ? "Feedback saved and mail sent successfully"
+                        : "Feedback saved, but mail sending failed",
+                    status: 200,
+                });
+
+            } catch (error) {
+                console.error("Error in QueriesSave:", error);
+                res.status(500).json({
+                    message: "Feedback mail failed",
+                    status: 500,
+                    error: error.message,
+                });
             }
         },
 
