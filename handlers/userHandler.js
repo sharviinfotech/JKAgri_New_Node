@@ -17,7 +17,11 @@ module.exports = (() => {
         userCreationNew: (req, res) => userMethods.userCreationSave(req, res),
         getAllUser:(req,res)=>userMethods.getAllUserLists(req,res),
         updateUserCreation:(req,res)=>userMethods.updateUserCreation(req,res),
-        Queries:(req,res)=>userMethods.QueriesSave(req,res)
+        Queries:(req,res)=>userMethods.QueriesSave(req,res),
+        getAllQueries:(req,res)=>userMethods.getAllQueries(req,res),
+
+        orgSave:(req,res)=>userMethods.OrganizationSave(req,res),
+        getAllOrg:(req,res)=>userMethods.getAllQueries(req,res)
         
     };
 })();

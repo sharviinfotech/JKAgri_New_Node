@@ -1,5 +1,5 @@
 const axios = require('axios');
-const { userCreation, userCount, xlsxCreation, pdfCreate, QueriesData, QueriesCount } = require('../models/userCreationModel');
+const { userCreation, userCount, xlsxCreation, pdfCreate, QueriesData, QueriesCount,OrganizationHirarchy,OrgCount } = require('../models/userCreationModel');
 const bcrypt = require('bcrypt');
 const jwt = require("jsonwebtoken");
 const moment = require('moment');
@@ -9,6 +9,15 @@ const recevieInvoiceSendToMail = require('../fetchInvoiceFolder/intialmailsend')
 const { sql, config } = require('../config/db');
 const { userLast6Months } = require("../baseFile");
 const { sendQueryMail } = require("../mailService");
+
+const XLSX = require("xlsx");
+const fs = require("fs");
+const path = require("path");
+
+const EXCEL_FOLDER_PATH = "D:/Dashboard";
+const EXCEL_FILE_NAME = "dashboard.xlsx"; // change if needed
+const SHEET_NAME = "Dashboard_Data";
+
 function formatDate(date) {
     if (!date) return null;
     const day = String(date.getDate()).padStart(2, '0');
@@ -117,7 +126,7 @@ module.exports = (() => {
                 }
 
                 // Compare password
-                console.log("userPassword",userPassword,user)
+                console.log("userPassword", userPassword, user)
                 if (userPassword !== user.userPassword) {
                     return res.status(400).json({
                         message: "Invalid Credentials",
@@ -185,7 +194,11 @@ module.exports = (() => {
                     userActivity: user.userActivity,
                     currentLoginAt: formatDate(user.currentLoginAt),
                     lastLoginAt: formatDate(user.lastLoginAt),
-                    last6MonthsStatus: user.last6MonthsStatus
+                    last6MonthsStatus: user.last6MonthsStatus,
+                    tmCode:user.tmCode?user.tmCode:"",
+                    tmContact:user.tmContact?user.tmContact:"",
+                    chCode:user.chCode?user.chCode:"",
+                    chContact:user.chContact?user.chContact:"",
                 };
 
                 const token = jwt.sign(
@@ -489,7 +502,7 @@ module.exports = (() => {
             console.log("userCreationSave", req, res)
             try {
                 console.log("req.body", req.body);
-                const { userName, userFirstName, userLastName, userEmail, userContact, userPassword, userConfirmPassword, userStatus, userActivity } = req.body;
+                const { userName, userFirstName, userLastName, userEmail, userContact, userPassword, userConfirmPassword, userStatus, userActivity,tmCode,tmContact,chCode,chContact } = req.body;
                 console.log("userPassword", userPassword, "userConfirmPassword", userConfirmPassword);
 
                 if (userPassword !== userConfirmPassword) {
@@ -522,6 +535,7 @@ module.exports = (() => {
                     userStatus,
                     userActivity,
                     userUniqueId,
+                    tmCode,tmContact,chCode,chContact,
                     currentLoginAt: now,          // initialize to now
                     lastLoginAt: null,            // no previous login yet
                     last6MonthsStatus: true       // new user is active in last 6 months by default
@@ -584,7 +598,7 @@ module.exports = (() => {
         QueriesSave: async (req, res) => {
             try {
                 console.log("req.body", req.body);
-                const { CustomerName, CustomerId, Queries } = req.body;
+                const { CustomerName, CustomerId, emailAddress, mobileNumber, feedbackType, Queries } = req.body;
 
                 // Increment counter atomically
                 let counter = await QueriesCount.findOneAndUpdate(
@@ -601,6 +615,9 @@ module.exports = (() => {
                     QueriesUniqueId,
                     CustomerName,
                     CustomerId,
+                    emailAddress,
+                    mobileNumber,
+                    feedbackType,
                     Queries,
                     sentDateTimeAt: now,
                 });
@@ -608,7 +625,7 @@ module.exports = (() => {
                 await queryPayload.save();
 
                 // Send email
-                const mailSent = await sendQueryMail({ CustomerName, CustomerId, Queries });
+                const mailSent = await sendQueryMail({ CustomerName, CustomerId, Queries, emailAddress, mobileNumber, feedbackType });
 
                 res.status(200).json({
                     message: mailSent
@@ -626,8 +643,109 @@ module.exports = (() => {
                 });
             }
         },
+        getAllQueries: async (req, res) => {
+            try {
+                const list = await QueriesData.find()
+                console.log("data", list)
+                if (list.length === 0) {
+                    res.json({
+                        message: "No Data Available",
+                        status: 200
+                    })
+                }
+                  const data = list.map(item => ({
+                    _id: item._id,
+                    QueriesUniqueId: item.QueriesUniqueId,
+                    CustomerName: item.CustomerName,
+                    CustomerId: item.CustomerId,
+                    emailAddress: item.emailAddress,
+                    mobileNumber: item.mobileNumber,
+                    feedbackType: item.feedbackType,
+                    Queries: item.Queries,
+                    sentDateTimeAt: formatDate(item.sentDateTimeAt),
+                    
+                }));
+                res.json({
+                    message: "Data Fetched Successfully",
+                    data: data,
+                    status: 200
+                })
 
+            } catch (error) {
 
+                res.json({
+                    error: error.message
+                })
+            }
+        },
+
+          OrganizationSave: async (req, res) => {
+            try {
+                console.log("req.body", req.body);
+                const { nsmCode, nsmName, nsmContact, ciCode, ciName, ciContact,chCode, chName, chContact,tmCode, tmName, tmContact, } = req.body;
+
+                // Increment counter atomically
+                let counter = await OrgCount.findOneAndUpdate(
+                    { name: "OrganizationUniqueId" },
+                    { $inc: { value: 1 } },
+                    { new: true, upsert: true, setDefaultsOnInsert: true }
+                );
+
+                const OrganizationUniqueId = counter.value;
+
+                const now = new Date();
+
+                const Payload = new OrganizationHirarchy({
+                    OrganizationUniqueId,
+                    nsmCode, nsmName, nsmContact, 
+                    ciCode, ciName, ciContact,
+                    chCode, chName, chContact,
+                    tmCode, tmName, tmContact,
+                    savedDateTimeAt: now,
+                });
+
+                const savedData = await Payload.save();
+                res.status(200).json({
+                    message: "Created Successfully",
+                    data:savedData,
+                    OrganizationUniqueId:OrganizationUniqueId,
+                    status: 200
+                });
+
+            } catch (error) {
+                console.error("Error in ==:", error);
+                res.status(500).json({
+                    message: "failed",
+                    status: 500,
+                    error: error.message,
+                });
+            }
+        },
+
+         getAllQueries: async (req, res) => {
+            try {
+                const list = await OrganizationHirarchy.find()
+                console.log("data", list)
+                if (list.length === 0) {
+                    res.json({
+                        message: "No Data Available",
+                        status: 200
+                    })
+                }
+                  
+                res.json({
+                    message: "Data Fetched Successfully",
+                    data: list,
+                    status: 200
+                })
+
+            } catch (error) {
+
+                res.json({
+                    error: error.message
+                })
+            }
+        },
         // getAllUserLists: async (req, res) => {
         //     try {
         //         const usersList = await userCreation.find()
@@ -674,6 +792,10 @@ module.exports = (() => {
                     last6MonthsStatus: user.last6MonthsStatus,
                     userPassword: user.userPassword,         // plain text
                     userConfirmPassword: user.userConfirmPassword,
+                    tmCode: user.tmCode,
+                    tmContact: user.tmContact,
+                    chCode: user.chCode,
+                    chContact: user.chContact,
                 }));
 
                 res.json({
@@ -708,6 +830,7 @@ module.exports = (() => {
                 });
             }
         },
+        
 
 
     };

@@ -14,6 +14,10 @@ module.exports = (() => {
     router.put('/JkAgri/updateExitUser/:UniqueId',userHandler.updateUserCreation);
     router.get('/JkAgri/getAllUserList',userHandler.getAllUser);
     router.post('/JkAgri/feedBackQueries',userHandler.Queries);
+    router.get('/JkAgri/getAllQueries',userHandler.getAllQueries);
+
+    router.post('/JkAgri/OrganizationSave',userHandler.orgSave);
+     router.get('/JkAgri/getAllOrg',userHandler.getAllOrg);
     console.log('enter route')
     
     // router.post('/', userHandler.createUser);
