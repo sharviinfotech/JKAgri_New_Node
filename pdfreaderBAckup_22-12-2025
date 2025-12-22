@@ -136,28 +136,17 @@ const processAndSendPdfs = async () => {
       // -----------------------------
       const parts = pdfName.split("_");
 
+      const DOC_TYPES = ["CRN", "DRN", "SOA", "INV", "COP", "ABS","AR","BAF"];
 
       let customerCode = null;
-      let docDate = null;
-      const DOC_TYPES = ["CRN", "DRN", "SOA", "INV", "COP", "ABS", "AR", "BAF"];
 
-      if (pdfName.startsWith("SOA_")) {
-        // SOA format: SOA_customerCode_date
-        const parts = pdfName.split("_");
-        customerCode = parts[1] || null;
-        docDate = parts[2] || null; // Optional if you want to send date too
-      } else {
-        // Other document types: e.g., 2300006817_CRN_12001919_11-01-2026
-        const parts = pdfName.split("_");
-        for (let i = 0; i < parts.length; i++) {
-          if (DOC_TYPES.includes(parts[i])) {
-            customerCode = parts[i + 1] || null;
-            break;
-          }
+      for (let i = 0; i < parts.length; i++) {
+        if (DOC_TYPES.includes(parts[i])) {
+          customerCode = parts[i + 1] || null;
+          break;
         }
       }
 
-      // Validate customerCode
       if (!customerCode || !/^\d{6,12}$/.test(customerCode)) {
         console.warn(`⚠️ Invalid customerCode in ${file}`);
         customerCode = null;

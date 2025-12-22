@@ -21,7 +21,12 @@ module.exports = (() => {
         getAllQueries:(req,res)=>userMethods.getAllQueries(req,res),
 
         orgSave:(req,res)=>userMethods.OrganizationSave(req,res),
-        getAllOrg:(req,res)=>userMethods.getAllQueries(req,res)
+        getAllOrg:(req,res)=>userMethods.getAllOrg(req,res),
+        getDashboarddata:(req,res)=>userMethods.getDashboardList(req,res),
+        fetchBasedonInput:(req,res)=>userMethods.fetchBasedonInput(req,res),
+        outStandingDataList:(req,res)=>userMethods.outStandingDataList(req,res),
+           stateList: (req, res) => userMethods.stateList(req, res),
+               crPassword:(req,res)=>userMethods.crPassword(req,res),
         
     };
 })();

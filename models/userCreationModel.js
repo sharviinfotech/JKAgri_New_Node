@@ -7,7 +7,7 @@ const userCountSchema = new mongoose.Schema({
         required: false,
         unique: true,
     },
- 
+
     value: {
         type: Number,
         default: 800,
@@ -15,122 +15,134 @@ const userCountSchema = new mongoose.Schema({
 });
 
 // user creation 
-const userCreationSchema = new mongoose.Schema({      
-    userUniqueId:{
+const userCreationSchema = new mongoose.Schema({
+    userUniqueId: {
         type: Number,
         required: true,
-        unique:true
-    } ,
-        userName: {
-            type: String,
-            required: true,
-        },
-        userFirstName: {
-            type: String,
-            required: true,
-        },
-        userLastName: {
-            type: String,
-            required: false,
-        },
-        userEmail: {
-            type: String,
-            required: true,
-        },
-        userContact: {
-            type: String,
-            required: true,
-        },
-        userPassword: {
-            type: String,
-            required: true,
-        },
-        userConfirmPassword: {
-            type: String,
-            required: true,
-        },
-        userStatus: {
-            type: Boolean,
-            required: true,
-        },
-        userActivity: {
-            type: String,
-            required: true,
-        },
-        tmCode:{
-             type: String,
-            required: false,
-        },
-        tmContact:{
-             type: String,
-            required: false,
-        },
-         chCode:{
-             type: String,
-            required: false,
-        },
-          chContact:{
-             type: String,
-            required: false,
-        },
-         // New fields
+        unique: true
+    },
+    userName: {
+        type: String,
+        required: true,
+    },
+    userFirstName: {
+        type: String,
+        required: true,
+    },
+    userLastName: {
+        type: String,
+        required: false,
+    },
+    userEmail: {
+        type: String,
+        required: true,
+    },
+    userContact: {
+        type: String,
+        required: true,
+    },
+    userPassword: {
+        type: String,
+        required: true,
+    },
+    userConfirmPassword: {
+        type: String,
+        required: true,
+    },
+    userStatus: {
+        type: Boolean,
+        required: true,
+    },
+    userActivity: {
+        type: String,
+        required: true,
+    },
+    tmCode: {
+        type: String,
+        required: false,
+    },
+    tmContact: {
+        type: String,
+        required: false,
+    },
+    chCode: {
+        type: String,
+        required: false,
+    },
+    chContact: {
+        type: String,
+        required: false,
+    },
+    ciCode: {
+        type: String,
+        required: false,
+    },
+    nsmCode: {
+        type: String,
+        required: false,
+    },
+    userState:{
+        type: String,
+        required: false,
+    },
+    // New fields
     currentLoginAt: { type: Date },   // latest login
     lastLoginAt: { type: Date },      // previous login
     last6MonthsStatus: { type: Boolean, default: true } // new field
-    
+
 });
 
 
 const customerCreationSchema = new mongoose.Schema({
 
-    customerUniqueId:{
+    customerUniqueId: {
         type: Number,
         required: true,
-        unique:true
-    } ,
-    customerName:{
-        type:String,
-        required:true
+        unique: true
     },
-    customerAddress:{
-        type:String,
-        required:true
+    customerName: {
+        type: String,
+        required: true
     },
-    customerCity:{
-        type:String,
-        required:true
+    customerAddress: {
+        type: String,
+        required: true
     },
-    customerState:{
-        type:String,
-        required:true
+    customerCity: {
+        type: String,
+        required: true
     },
-    customerPincode:{
-        type:String,
-        required:true
+    customerState: {
+        type: String,
+        required: true
     },
-    customerGstNo:{
-        type:String,
-        required:true
+    customerPincode: {
+        type: String,
+        required: true
     },
-    customerPanNo:{
-        type:String,
-        required:true
+    customerGstNo: {
+        type: String,
+        required: true
     },
-    customerEmail:{
-        type:String,
-        required:true
+    customerPanNo: {
+        type: String,
+        required: true
     },
-    customerContact:{
-        type:Number,
-        required:true
+    customerEmail: {
+        type: String,
+        required: true
     },
-    customerAlernativecontact:{
-        type:Number,
-        required:false
+    customerContact: {
+        type: Number,
+        required: true
     },
-    customerCreditPeriod:{
-        type:String,
-        required:true
+    customerAlernativecontact: {
+        type: Number,
+        required: false
+    },
+    customerCreditPeriod: {
+        type: String,
+        required: true
     }
 
 })
@@ -140,7 +152,7 @@ const customerCountSchema = new mongoose.Schema({
         required: false,
         unique: true,
     },
- 
+
     value: {
         type: Number,
         default: 800,
@@ -148,16 +160,16 @@ const customerCountSchema = new mongoose.Schema({
 });
 const chargesCreationSchema = new mongoose.Schema({
 
-    chargesUniqueId:{
+    chargesUniqueId: {
         type: Number,
         required: true,
-        unique:true
-    } ,
-    chargesName:{
-        type:String,
-        required:true
+        unique: true
     },
-   
+    chargesName: {
+        type: String,
+        required: true
+    },
+
 
 })
 const chargesCountSchema = new mongoose.Schema({
@@ -166,7 +178,7 @@ const chargesCountSchema = new mongoose.Schema({
         required: false,
         unique: true,
     },
- 
+
     value: {
         type: Number,
         default: 800,
@@ -189,42 +201,43 @@ const pdfSchema = new mongoose.Schema({
     fileName: { type: String, required: true },
     fileData: { type: String, required: true }, // Base64 string
     pdfName: { type: String }, // ✅ Store extracted pdfName
-    monthAndYear: { type: String } // ✅ Store extracted Month-Year
+    monthAndYear: { type: String }, // ✅ Store extracted Month-Year
+    customerCode: { type: String, required: false },
 }, { timestamps: true });
 
 
 const QueriesSchema = new mongoose.Schema({
 
-    QueriesUniqueId:{
+    QueriesUniqueId: {
         type: Number,
         required: true,
-        unique:true
-    } ,
-    CustomerName:{
-        type:String,
-        required:true
+        unique: true
     },
-    CustomerId:{
-        type:String,
-        required:true
+    CustomerName: {
+        type: String,
+        required: true
     },
-      emailAddress:{
-        type:String,
-        required:true
+    CustomerId: {
+        type: String,
+        required: true
     },
-      mobileNumber:{
-        type:String,
-        required:true
+    emailAddress: {
+        type: String,
+        required: true
     },
-      feedbackType:{
-        type:String,
-        required:true
+    mobileNumber: {
+        type: String,
+        required: true
     },
-    Queries:{
-        type:String,
-        required:true
+    feedbackType: {
+        type: String,
+        required: true
     },
-   sentDateTimeAt: { type: Date }, 
+    Queries: {
+        type: String,
+        required: true
+    },
+    sentDateTimeAt: { type: Date },
 })
 const QueriesCountSchema = new mongoose.Schema({
     name: {
@@ -232,7 +245,7 @@ const QueriesCountSchema = new mongoose.Schema({
         required: false,
         unique: true,
     },
- 
+
     value: {
         type: Number,
         default: 800,
@@ -242,61 +255,61 @@ const QueriesCountSchema = new mongoose.Schema({
 
 const OrganizationHirarchySchema = new mongoose.Schema({
 
-    OrganizationUniqueId:{
+    OrganizationUniqueId: {
         type: Number,
         required: true,
-        unique:true
-    } ,
-    nsmCode:{
-        type:String,
-        required:true
+        unique: true
     },
-    nsmName:{
-        type:String,
-        required:true
+    nsmCode: {
+        type: String,
+        required: true
     },
-      nsmContact:{
-        type:String,
-        required:true
+    nsmName: {
+        type: String,
+        required: true
     },
-      
-     ciCode:{
-        type:String,
-        required:true
+    nsmContact: {
+        type: String,
+        required: true
     },
-    ciName:{
-        type:String,
-        required:true
+
+    ciCode: {
+        type: String,
+        required: true
     },
-      ciContact:{
-        type:String,
-        required:true
+    ciName: {
+        type: String,
+        required: true
     },
-     chCode:{
-        type:String,
-        required:true
+    ciContact: {
+        type: String,
+        required: true
     },
-    chName:{
-        type:String,
-        required:true
+    chCode: {
+        type: String,
+        required: true
     },
-      chContact:{
-        type:String,
-        required:true
+    chName: {
+        type: String,
+        required: true
     },
-     tmCode:{
-        type:String,
-        required:true
+    chContact: {
+        type: String,
+        required: true
     },
-    tmName:{
-        type:String,
-        required:true
+    tmCode: {
+        type: String,
+        required: true
     },
-      tmContact:{
-        type:String,
-        required:true
+    tmName: {
+        type: String,
+        required: true
     },
-    savedDateTimeAt:{
+    tmContact: {
+        type: String,
+        required: true
+    },
+    savedDateTimeAt: {
         type: Date
     }
 })
@@ -306,46 +319,95 @@ const OrganizationCount = new mongoose.Schema({
         required: false,
         unique: true,
     },
- 
+
     value: {
         type: Number,
         default: 800,
     },
 });
 const DashboardSchema = new mongoose.Schema({
-  customerCode: { type: String, required: true },
+    customerCode: { type: String, required: true },
 
-  totalValue: { type: Number, default: 0 },
-  crnValue: { type: Number, default: 0 },
-  drnValue: { type: Number, default: 0 },
-  invoiceValue: { type: Number, default: 0 },
-  soaValue: { type: Number, default: 0 },
-  commercialValue: { type: Number, default: 0 },
-  absValue: { type: Number, default: 0 },
-  outstandingValue: { type: Number, default: 0 },
+    totalValue: { type: Number, default: 0 },
+    crnValue: { type: Number, default: 0 },
+    drnValue: { type: Number, default: 0 },
+    invoiceValue: { type: Number, default: 0 },
+    soaValue: { type: Number, default: 0 },
+    commercialValue: { type: Number, default: 0 },
+    absValue: { type: Number, default: 0 },
+    outstandingValue: { type: Number, default: 0 },
 
-  savedAt: { type: Date, default: Date.now }
+    dataLastUpdatedOn: { type: Date, default: Date.now }
+});
+
+const OutstandingSchema = new mongoose.Schema({
+    customerCode: { type: String, required: false },
+    customerName: { type: String },
+
+    state: { type: String },
+    place: { type: String },
+
+    debit: { type: Number, default: 0 },
+    credit: { type: Number, default: 0 },
+    dso: { type: Number, default: 0 },
+
+    bucket_0_30: { type: Number, default: 0 },
+    bucket_31_60: { type: Number, default: 0 },
+    bucket_61_90: { type: Number, default: 0 },
+    bucket_91_120: { type: Number, default: 0 },
+    bucket_121_180: { type: Number, default: 0 },
+    bucket_181_365: { type: Number, default: 0 },
+    bucket_366_730: { type: Number, default: 0 },
+    bucket_731_1095: { type: Number, default: 0 },
+    bucket_gt_1095: { type: Number, default: 0 },
+
+    accountGroup: { type: String },
+    accountGroupName: { type: String },
+    profitCenter: { type: String },
+    profitCenterText: { type: String },
+    ciName: { type: String },
+    chName: { type: String },
+    blName: { type: String },
+    tmName: { type: String },
+
+    dataLastUpdatedOn: { type: Date, default: Date.now }
+});
+
+const stateListSchema = new mongoose.Schema({
+
+    code: {
+        type: String,
+        required: false
+    },
+    stateName: {
+        type: String,
+        required: false
+    },
 });
 
 
-const userCreation =mongoose.model('userCreation',userCreationSchema);
-const userCount = mongoose.model('userCount',userCountSchema);
-const customerCreation =mongoose.model('customerCreation',customerCreationSchema);
-const customerCount= mongoose.model('customerCount',customerCountSchema)
-const chargesCreation= mongoose.model('chargesCreation',chargesCreationSchema)
-const chargesCount= mongoose.model('chargeCount',chargesCountSchema)
-const xlsxCreation= mongoose.model('xlsxData',capturedXlsxSchema)
+
+
+const userCreation = mongoose.model('userCreation', userCreationSchema);
+const userCount = mongoose.model('userCount', userCountSchema);
+const customerCreation = mongoose.model('customerCreation', customerCreationSchema);
+const customerCount = mongoose.model('customerCount', customerCountSchema)
+const chargesCreation = mongoose.model('chargesCreation', chargesCreationSchema)
+const chargesCount = mongoose.model('chargeCount', chargesCountSchema)
+const xlsxCreation = mongoose.model('xlsxData', capturedXlsxSchema)
 // const pdfCreate = mongoose.model('Pdf', pdfSchema);
 const pdfCreate = mongoose.model('All_Pdfs_Data', pdfSchema);
 
-const QueriesData =mongoose.model('QueriesData',QueriesSchema);
-const QueriesCount = mongoose.model('QueriesCount',QueriesCountSchema);
+const QueriesData = mongoose.model('QueriesData', QueriesSchema);
+const QueriesCount = mongoose.model('QueriesCount', QueriesCountSchema);
 
-const OrganizationHirarchy =mongoose.model('OrganizationHirarchy',OrganizationHirarchySchema);
-const OrgCount = mongoose.model('OrganizationCount',OrganizationCount);
+const OrganizationHirarchy = mongoose.model('OrganizationHirarchy', OrganizationHirarchySchema);
+const OrgCount = mongoose.model('OrganizationCount', OrganizationCount);
 
 const DashboardData = mongoose.model("DashboardData", DashboardSchema);
+const outstandingSchema = mongoose.model("OutstandingData", OutstandingSchema);
 
+const statee = mongoose.model('state', stateListSchema);
 
 // Export as an object
-module.exports = { userCreation,userCount,customerCreation,customerCount,chargesCreation,chargesCount,xlsxCreation,pdfCreate,QueriesData,QueriesCount,OrganizationHirarchy,OrgCount,DashboardData};
+module.exports = { userCreation, userCount, customerCreation, customerCount, chargesCreation, chargesCount, xlsxCreation, pdfCreate, QueriesData, QueriesCount, OrganizationHirarchy, OrgCount, DashboardData, outstandingSchema,statee };

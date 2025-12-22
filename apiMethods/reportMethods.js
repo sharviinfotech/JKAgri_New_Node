@@ -1,5 +1,5 @@
 const axios = require('axios');
-const { userCreation, userCount, xlsxCreation, pdfCreate, QueriesData, QueriesCount,OrganizationHirarchy,OrgCount } = require('../models/userCreationModel');
+const { userCreation, userCount, xlsxCreation, pdfCreate, QueriesData, QueriesCount, OrganizationHirarchy, OrgCount, DashboardData, outstandingSchema,statee } = require('../models/userCreationModel');
 const bcrypt = require('bcrypt');
 const jwt = require("jsonwebtoken");
 const moment = require('moment');
@@ -195,10 +195,11 @@ module.exports = (() => {
                     currentLoginAt: formatDate(user.currentLoginAt),
                     lastLoginAt: formatDate(user.lastLoginAt),
                     last6MonthsStatus: user.last6MonthsStatus,
-                    tmCode:user.tmCode?user.tmCode:"",
-                    tmContact:user.tmContact?user.tmContact:"",
-                    chCode:user.chCode?user.chCode:"",
-                    chContact:user.chContact?user.chContact:"",
+                    tmCode: user.tmCode ? user.tmCode : "",
+                    tmContact: user.tmContact ? user.tmContact : "",
+                    chCode: user.chCode ? user.chCode : "",
+                    chContact: user.chContact ? user.chContact : "",
+                    userState:user.userState
                 };
 
                 const token = jwt.sign(
@@ -412,63 +413,141 @@ module.exports = (() => {
 
         // API to Fetch Data
         // API to Fetch Data or Check if PDF Exists
+        // pdfSubmit: async (req, res) => {
+        //     try {
+        //         const { fileName, fileData } = req.body;
+        //         if (!fileName || !fileData) {
+        //             return res.status(400).json({ message: "Missing fileName or fileData" });
+        //         }
+
+        //         const pdfName = fileName.replace(/\.pdf$/i, "");
+        //         let monthAndYear = null;
+
+        //         // 1️⃣ DD.MM.YYYY
+        //         let match = pdfName.match(/\d{2}[.]\d{2}[.]\d{4}/);
+        //         if (match) {
+        //             monthAndYear = match[0]; // already correct
+        //         }
+
+        //         // 2️⃣ DD-MM-YYYY → convert to DD.MM.YYYY
+        //         if (!monthAndYear) {
+        //             match = pdfName.match(/\d{2}[-]\d{2}[-]\d{4}/);
+        //             if (match) {
+        //                 monthAndYear = match[0].replace(/-/g, '.');
+        //             }
+        //         }
+
+        //         // 3️⃣ MM_YYYY → assume day = 01 → convert to DD.MM.YYYY
+        //         if (!monthAndYear) {
+        //             match = pdfName.match(/(0[1-9]|1[0-2])_\d{4}/);
+        //             if (match) {
+        //                 const [mon, yr] = match[0].split('_');
+        //                 monthAndYear = `01.${mon}.${yr}`;
+        //             }
+        //         }
+
+        //         // 4️⃣ MM-YYYY → assume day = 01 → convert to DD.MM.YYYY
+        //         if (!monthAndYear) {
+        //             match = pdfName.match(/(0[1-9]|1[0-2])-\d{4}/);
+        //             if (match) {
+        //                 const [mon, yr] = match[0].split('-');
+        //                 monthAndYear = `01.${mon}.${yr}`;
+        //             }
+        //         }
+
+        //         // ✅ Prevent duplicates
+        //         const existingPdf = await pdfCreate.findOne({ fileName });
+        //         if (existingPdf) {
+        //             return res.status(409).json({ message: "PDF already exists" });
+        //         }
+
+        //         // ✅ Save with DD.MM.YYYY format
+        //         const newPdf = new pdfCreate({ fileName, pdfName, fileData, monthAndYear });
+        //         await newPdf.save();
+
+        //         return res.status(201).json({ message: "PDF saved successfully", pdfName, monthAndYear });
+
+        //     } catch (error) {
+        //         console.error("🚨 Error saving PDF:", error);
+        //         return res.status(500).json({ message: "Failed to save PDF", error: error.message });
+        //     }
+        // },
+
         pdfSubmit: async (req, res) => {
             try {
-                const { fileName, fileData } = req.body;
+                const { fileName, fileData, customerCode } = req.body;
+
                 if (!fileName || !fileData) {
-                    return res.status(400).json({ message: "Missing fileName or fileData" });
+                    return res.status(400).json({
+                        message: "Missing fileName or fileData"
+                    });
                 }
 
                 const pdfName = fileName.replace(/\.pdf$/i, "");
+
+                // ----------------------------
+                // 1️⃣ TRUST CLIENT customerCode
+                // ----------------------------
+                let finalCustomerCode = customerCode || null;
+
+                // ----------------------------
+                // 2️⃣ Extract monthAndYear
+                // ----------------------------
                 let monthAndYear = null;
+                let match;
 
-                // 1️⃣ DD.MM.YYYY
-                let match = pdfName.match(/\d{2}[.]\d{2}[.]\d{4}/);
-                if (match) {
-                    monthAndYear = match[0]; // already correct
+                match = pdfName.match(/\d{2}[.]\d{2}[.]\d{4}/);
+                if (match) monthAndYear = match[0];
+
+                if (!monthAndYear) {
+                    match = pdfName.match(/\d{2}-\d{2}-\d{4}/);
+                    if (match) monthAndYear = match[0].replace(/-/g, ".");
                 }
 
-                // 2️⃣ DD-MM-YYYY → convert to DD.MM.YYYY
                 if (!monthAndYear) {
-                    match = pdfName.match(/\d{2}[-]\d{2}[-]\d{4}/);
+                    match = pdfName.match(/(0[1-9]|1[0-2])[_-]\d{4}/);
                     if (match) {
-                        monthAndYear = match[0].replace(/-/g, '.');
-                    }
-                }
-
-                // 3️⃣ MM_YYYY → assume day = 01 → convert to DD.MM.YYYY
-                if (!monthAndYear) {
-                    match = pdfName.match(/(0[1-9]|1[0-2])_\d{4}/);
-                    if (match) {
-                        const [mon, yr] = match[0].split('_');
+                        const [mon, yr] = match[0].split(/[_-]/);
                         monthAndYear = `01.${mon}.${yr}`;
                     }
                 }
 
-                // 4️⃣ MM-YYYY → assume day = 01 → convert to DD.MM.YYYY
-                if (!monthAndYear) {
-                    match = pdfName.match(/(0[1-9]|1[0-2])-\d{4}/);
-                    if (match) {
-                        const [mon, yr] = match[0].split('-');
-                        monthAndYear = `01.${mon}.${yr}`;
-                    }
-                }
-
-                // ✅ Prevent duplicates
+                // ----------------------------
+                // 3️⃣ Prevent duplicates
+                // ----------------------------
                 const existingPdf = await pdfCreate.findOne({ fileName });
                 if (existingPdf) {
-                    return res.status(409).json({ message: "PDF already exists" });
+                    return res.status(409).json({
+                        message: "PDF already exists"
+                    });
                 }
 
-                // ✅ Save with DD.MM.YYYY format
-                const newPdf = new pdfCreate({ fileName, pdfName, fileData, monthAndYear });
+                // ----------------------------
+                // 4️⃣ Save PDF (NO overwrite)
+                // ----------------------------
+                const newPdf = new pdfCreate({
+                    fileName,
+                    pdfName,
+                    customerCode: finalCustomerCode, // ✅ FIXED
+                    monthAndYear,
+                    fileData
+                });
+
                 await newPdf.save();
 
-                return res.status(201).json({ message: "PDF saved successfully", pdfName, monthAndYear });
+                return res.status(201).json({
+                    message: "PDF saved successfully",
+                    pdfName,
+                    customerCode: finalCustomerCode,
+                    monthAndYear
+                });
 
             } catch (error) {
                 console.error("🚨 Error saving PDF:", error);
-                return res.status(500).json({ message: "Failed to save PDF", error: error.message });
+                return res.status(500).json({
+                    message: "Failed to save PDF",
+                    error: error.message
+                });
             }
         },
 
@@ -502,7 +581,7 @@ module.exports = (() => {
             console.log("userCreationSave", req, res)
             try {
                 console.log("req.body", req.body);
-                const { userName, userFirstName, userLastName, userEmail, userContact, userPassword, userConfirmPassword, userStatus, userActivity,tmCode,tmContact,chCode,chContact } = req.body;
+                const { userName, userFirstName, userLastName, userEmail, userContact, userPassword, userConfirmPassword, userStatus, userActivity, tmCode, tmContact, chCode, chContact, ciCode, nsmCode,userState } = req.body;
                 console.log("userPassword", userPassword, "userConfirmPassword", userConfirmPassword);
 
                 if (userPassword !== userConfirmPassword) {
@@ -535,7 +614,8 @@ module.exports = (() => {
                     userStatus,
                     userActivity,
                     userUniqueId,
-                    tmCode,tmContact,chCode,chContact,
+                    tmCode, tmContact, chCode, chContact,
+                    ciCode, nsmCode,userState,
                     currentLoginAt: now,          // initialize to now
                     lastLoginAt: null,            // no previous login yet
                     last6MonthsStatus: true       // new user is active in last 6 months by default
@@ -653,7 +733,7 @@ module.exports = (() => {
                         status: 200
                     })
                 }
-                  const data = list.map(item => ({
+                const data = list.map(item => ({
                     _id: item._id,
                     QueriesUniqueId: item.QueriesUniqueId,
                     CustomerName: item.CustomerName,
@@ -663,7 +743,7 @@ module.exports = (() => {
                     feedbackType: item.feedbackType,
                     Queries: item.Queries,
                     sentDateTimeAt: formatDate(item.sentDateTimeAt),
-                    
+
                 }));
                 res.json({
                     message: "Data Fetched Successfully",
@@ -679,10 +759,10 @@ module.exports = (() => {
             }
         },
 
-          OrganizationSave: async (req, res) => {
+        OrganizationSave: async (req, res) => {
             try {
                 console.log("req.body", req.body);
-                const { nsmCode, nsmName, nsmContact, ciCode, ciName, ciContact,chCode, chName, chContact,tmCode, tmName, tmContact, } = req.body;
+                const { nsmCode, nsmName, nsmContact, ciCode, ciName, ciContact, chCode, chName, chContact, tmCode, tmName, tmContact, } = req.body;
 
                 // Increment counter atomically
                 let counter = await OrgCount.findOneAndUpdate(
@@ -697,7 +777,7 @@ module.exports = (() => {
 
                 const Payload = new OrganizationHirarchy({
                     OrganizationUniqueId,
-                    nsmCode, nsmName, nsmContact, 
+                    nsmCode, nsmName, nsmContact,
                     ciCode, ciName, ciContact,
                     chCode, chName, chContact,
                     tmCode, tmName, tmContact,
@@ -707,8 +787,8 @@ module.exports = (() => {
                 const savedData = await Payload.save();
                 res.status(200).json({
                     message: "Created Successfully",
-                    data:savedData,
-                    OrganizationUniqueId:OrganizationUniqueId,
+                    data: savedData,
+                    OrganizationUniqueId: OrganizationUniqueId,
                     status: 200
                 });
 
@@ -722,7 +802,7 @@ module.exports = (() => {
             }
         },
 
-         getAllQueries: async (req, res) => {
+        getAllOrg: async (req, res) => {
             try {
                 const list = await OrganizationHirarchy.find()
                 console.log("data", list)
@@ -732,7 +812,7 @@ module.exports = (() => {
                         status: 200
                     })
                 }
-                  
+
                 res.json({
                     message: "Data Fetched Successfully",
                     data: list,
@@ -746,6 +826,77 @@ module.exports = (() => {
                 })
             }
         },
+
+
+        getDashboardList: async (req, res) => {
+            try {
+                const { customerCode } = req.body;
+
+                // ✅ lean() gives plain objects
+                const list = await DashboardData.find({ customerCode }).lean();
+
+                if (!list.length) {
+                    return res.json({
+                        message: "No Data Available",
+                        data: [],
+                        status: 200
+                    });
+                }
+
+                // ✅ format date here
+                const formattedList = list.map(item => ({
+                    ...item,
+                    dataLastUpdatedOn: formatDate(item.dataLastUpdatedOn)
+                }));
+
+                return res.json({
+                    message: "Data Fetched Successfully",
+                    data: formattedList,
+                    status: 200
+                });
+
+            } catch (error) {
+                return res.status(500).json({
+                    message: "Server Error",
+                    error: error.message
+                });
+            }
+        },
+        outStandingDataList: async (req, res) => {
+            try {
+                const { customerCode } = req.body;
+
+                // ✅ lean() gives plain objects
+                const list = await outstandingSchema.find({ customerCode }).lean();
+                console.log("outStandingDataList", list)
+                if (!list.length) {
+                    return res.json({
+                        message: "No Data Available",
+                        data: [],
+                        status: 200
+                    });
+                }
+
+                // ✅ format date here
+                const formattedList = list.map(item => ({
+                    ...item,
+                    dataLastUpdatedOn: formatDate(item.dataLastUpdatedOn)
+                }));
+
+                return res.json({
+                    message: "Data Fetched Successfully",
+                    data: formattedList,
+                    status: 200
+                });
+
+            } catch (error) {
+                return res.status(500).json({
+                    message: "Server Error",
+                    error: error.message
+                });
+            }
+        },
+
         // getAllUserLists: async (req, res) => {
         //     try {
         //         const usersList = await userCreation.find()
@@ -796,6 +947,7 @@ module.exports = (() => {
                     tmContact: user.tmContact,
                     chCode: user.chCode,
                     chContact: user.chContact,
+                    userState:user.userState
                 }));
 
                 res.json({
@@ -830,7 +982,501 @@ module.exports = (() => {
                 });
             }
         },
-        
+        // fetchBasedonInput: async (req, res) => {
+        //     try {
+        //         const { userName, userActivity } = req.body;
+        //         let targetUserNames = [];
+
+        //         // --- STEP 1: Determine which UserNames (Customer Codes) to look for ---
+        //         if (userActivity === "CUSTOMER") {
+        //             // If it's a customer, we only care about their own userName
+        //             targetUserNames = [userName];
+        //         } else {
+        //             // Rule: Find all TM Codes under this USER's hierarchy (NSM/CI/CH/TM)
+        //             const hierarchy = await OrganizationHirarchy.find({
+        //                 $or: [
+        //                     { nsmCode: userName },
+        //                     { ciCode: userName },
+        //                     { chCode: userName },
+        //                     { tmCode: userName }
+        //                 ]
+        //             });
+
+        //             // Extract unique TM Codes
+        //             const authorizedTmCodes = [...new Set(hierarchy.map(item => item.tmCode))];
+        //             console.log("authorizedTmCodes 893", authorizedTmCodes)
+        //             // Fetch the customers linked to those TM Codes
+        //             const customers = await userCreation.find({
+        //                 userActivity: "CUSTOMER",
+        //                 tmCode: { $in: authorizedTmCodes }
+        //             }, 'userName'); // Only select userName for speed
+        //             console.log("customers 899", customers)
+        //             targetUserNames = customers.map(c => c.userName);
+        //         }
+
+        //         // --- STEP 2: Filter pdfCreate based on the targetUserNames ---
+        //         let pdfResult = [];
+        //         console.log("targetUserNames", targetUserNames)
+        //         if (targetUserNames.length > 0) {
+        //             // Create a regex pattern to find any of the userNames within the filename
+        //             // Example: "12001919|0012000017"
+        //             const regexQuery = targetUserNames.join('|');
+
+        //             pdfResult = await pdfCreate.find({
+        //                 $or: [
+        //                     { fileName: { $regex: regexQuery, $options: 'i' } },
+        //                     { pdfName: { $regex: regexQuery, $options: 'i' } }
+        //                 ]
+        //             });
+        //         }
+
+        //         // --- STEP 3: Send Response ---
+        //         return res.status(200).json({
+        //             message: "PDF data fetched successfully",
+        //             statusCode: 200,
+        //             responseCount: pdfResult.length,
+        //             responseData: pdfResult,
+        //         });
+
+        //     } catch (err) {
+        //         console.error("Error fetching PDF data:", err);
+        //         return res.status(500).json({
+        //             message: "Failed to fetch data",
+        //             error: err.message,
+        //             statusCode: 500,
+        //         });
+        //     }
+        // }
+
+        // fetchBasedonInput: async (req, res) => {
+        //     try {
+        //         const { userName, userActivity } = req.body;
+
+        //         let customerCodes = [];
+
+        //         /* --------------------------------------------------
+        //            1️⃣ CUSTOMER LOGIN → DIRECT PDFs
+        //         -------------------------------------------------- */
+        //         if (userActivity === "CUSTOMER") {
+        //             customerCodes = [userName];
+        //             console.log("customerCodes 949",customerCodes)
+        //         }
+
+        //         /* --------------------------------------------------
+        //            2️⃣ USER LOGIN → NSM / CI / CH / TM
+        //         -------------------------------------------------- */
+        //         else if (userActivity === "USER") {
+
+        //             // Find hierarchy rows where logged-in user appears
+        //             const hierarchy = await OrganizationHirarchy.find({
+        //                 $or: [
+        //                     { nsmCode: userName },
+        //                     { ciCode: userName },
+        //                     { chCode: userName },
+        //                     { tmCode: userName }
+        //                 ]
+        //             });
+
+        //             if (!hierarchy.length) {
+        //                 return res.status(200).json({
+        //                     message: "No hierarchy mapping found",
+        //                     responseData: []
+        //                 });
+        //             }
+
+        //             let tmCodes = [];
+
+        //             /* ---- If user is TM ---- */
+        //             const isTM = hierarchy.some(h => h.tmCode === userName);
+        //             if (isTM) {
+        //                 tmCodes = [userName];
+        //             }
+        //             /* ---- If user is NSM / CI / CH ---- */
+        //             else {
+        //                 tmCodes = [...new Set(hierarchy.map(h => h.tmCode))];
+        //             }
+
+        //             // Get customers under these TMs
+        //             const customers = await userCreation.find({
+        //                 userActivity: "CUSTOMER",
+        //                 tmCode: { $in: tmCodes }
+        //             }).select("userName");
+
+        //             customerCodes = customers.map(c => c.userName);
+        //             console.log("customerCodes 949",customerCodes)
+        //         }
+
+        //         /* --------------------------------------------------
+        //            3️⃣ Fetch PDFs
+        //         -------------------------------------------------- */
+        //         if (!customerCodes.length) {
+        //             return res.status(200).json({
+        //                 message: "No customers found",
+        //                 responseData: []
+        //             });
+        //         }
+
+        //         // Safe regex: _CUSTOMERCODE_
+        //         const regex = new RegExp(`_(${customerCodes.join("|")})_`, "i");
+
+        //         const pdfResult = await pdfCreate.find({
+        //             $or: [
+        //                 { fileName: regex },
+        //                 { pdfName: regex }
+        //             ]
+        //         });
+
+        //         return res.status(200).json({
+        //             message: "Data fetched successfully",
+        //             customerCount: customerCodes.length,
+        //             pdfCount: pdfResult.length,
+        //             responseData: pdfResult
+        //         });
+
+        //     } catch (error) {
+        //         console.error("Error:", error);
+        //         return res.status(500).json({
+        //             message: "Internal Server Error"
+        //         });
+        //     }
+        // }
+
+        // below is the working code 17-12-2025
+        // fetchBasedonInput: async (req, res) => {
+        //     try {
+        //         const { userName, userActivity } = req.body;
+
+        //         console.log("🟢 Request received:", { userName, userActivity });
+
+        //         let customerCodes = [];
+
+        //         /* --------------------------------------------------
+        //            1️⃣ CUSTOMER LOGIN → DIRECT PDFs
+        //         -------------------------------------------------- */
+        //         if (userActivity === "CUSTOMER") {
+        //             customerCodes = [userName];
+        //             console.log("🟢 CUSTOMER LOGIN - customerCodes:", customerCodes);
+        //         }
+
+        //         /* --------------------------------------------------
+        //            2️⃣ USER LOGIN → NSM / CI / CH / TM
+        //         -------------------------------------------------- */
+        //         else if (userActivity === "USER") {
+
+        //             console.log("🟢 USER LOGIN - fetching hierarchy for user:", userName);
+
+        //             // Find hierarchy rows where logged-in user appears
+        //             const hierarchy = await OrganizationHirarchy.find({
+        //                 $or: [
+        //                     { nsmCode: userName },
+        //                     { ciCode: userName },
+        //                     { chCode: userName },
+        //                     { tmCode: userName }
+        //                 ]
+        //             });
+
+        //             console.log("🟢 Hierarchy fetched:", hierarchy);
+
+        //             if (!hierarchy.length) {
+        //                 console.log("⚠️ No hierarchy mapping found for user:", userName);
+        //                 return res.status(200).json({
+        //                     message: "No hierarchy mapping found",
+        //                     responseData: []
+        //                 });
+        //             }
+
+        //             let tmCodes = [];
+
+        //             /* ---- If user is TM ---- */
+        //             const isTM = hierarchy.some(h => String(h.tmCode) === String(userName));
+        //             console.log("🟢 isTM:", isTM);
+
+        //             if (isTM) {
+        //                 tmCodes = [userName];
+        //             }
+        //             /* ---- If user is NSM / CI / CH ---- */
+        //             else {
+        //                 tmCodes = [...new Set(
+        //                     hierarchy.map(h => h.tmCode)
+        //                         .filter(Boolean)
+        //                         .map(c => String(c))
+        //                 )];
+        //             }
+
+        //             console.log("🟢 TM Codes determined:", tmCodes);
+
+        //             // Get customers under these TMs
+        //             const customers = await userCreation.find({
+        //                 userActivity: "CUSTOMER",
+        //                 tmCode: { $in: tmCodes }
+        //             }).select("userName");
+
+        //             console.log("🟢 Customers fetched under TMs:", customers);
+
+        //             customerCodes = customers.map(c => String(c.userName));
+        //             console.log("🟢 Final customerCodes:", customerCodes);
+        //         }
+
+
+        //         if (!customerCodes.length) {
+        //             return res.status(200).json({
+        //                 message: "No customers found",
+        //                 responseData: []
+        //             });
+        //         }
+
+        //         const pdfResult = await pdfCreate.find({
+        //             customerCode: { $in: customerCodes }
+        //         });
+
+        //         console.log(`🟢 PDFs fetched: ${pdfResult.length}`);
+
+        //         return res.status(200).json({
+        //             message: "Data fetched successfully",
+        //             customerCount: customerCodes.length,
+        //             pdfCount: pdfResult.length,
+        //             responseData: pdfResult
+        //         });
+
+        //     } catch (error) {
+        //         console.error("🚨 Error in fetchBasedonInput:", error);
+        //         return res.status(500).json({
+        //             message: "Internal Server Error"
+        //         });
+        //     }
+        // }
+        // below is the working code 17-12-2025 for console logs added below 
+        fetchBasedonInput: async (req, res) => {
+            try {
+                const { userName, userActivity } = req.body;
+
+                console.log("\n================ LOGIN REQUEST ================");
+                console.log("🟢 userName:", userName);
+                console.log("🟢 userActivity:", userActivity);
+
+                let customerCodes = [];
+
+                /* --------------------------------------------------
+                   1️⃣ CUSTOMER LOGIN
+                -------------------------------------------------- */
+                if (userActivity === "CUSTOMER") {
+
+                    console.log("🔵 LOGIN LEVEL → CUSTOMER");
+                    console.log("📌 Direct customer access");
+
+                    customerCodes = [userName];
+
+                    console.log("👤 CUSTOMER CODE:", customerCodes);
+                }
+
+                /* --------------------------------------------------
+                   2️⃣ USER LOGIN (NSM / CI / CH / TM)
+                -------------------------------------------------- */
+                else if (userActivity === "USER") {
+
+                    console.log("\n🔵 LOGIN LEVEL → USER");
+                    console.log("🔍 Fetching hierarchy mapping...");
+
+                    const hierarchy = await OrganizationHirarchy.find({
+                        $or: [
+                            { nsmCode: userName },
+                            { ciCode: userName },
+                            { chCode: userName },
+                            { tmCode: userName }
+                        ]
+                    });
+
+                    if (!hierarchy.length) {
+                        console.log("⚠️ No hierarchy found");
+                        return res.status(200).json({
+                            message: "No hierarchy mapping found",
+                            responseData: []
+                        });
+                    }
+
+                    console.log("📊 Hierarchy rows found:", hierarchy.length);
+
+                    const isNSM = hierarchy.some(h => h.nsmCode === userName);
+                    const isCI = hierarchy.some(h => h.ciCode === userName);
+                    const isCH = hierarchy.some(h => h.chCode === userName);
+                    const isTM = hierarchy.some(h => h.tmCode === userName);
+
+                    /* --------------------------------------------------
+                       Identify login level
+                    -------------------------------------------------- */
+                    if (isNSM) console.log("🔷 LOGIN AS → NSM");
+                    else if (isCI) console.log("🔷 LOGIN AS → CI");
+                    else if (isCH) console.log("🔷 LOGIN AS → CH");
+                    else if (isTM) console.log("🔷 LOGIN AS → TM");
+
+                    /* --------------------------------------------------
+                       CI LEVEL
+                    -------------------------------------------------- */
+                    if (isNSM) {
+                        const ciCodes = [...new Set(hierarchy.map(h => h.ciCode).filter(Boolean))];
+                        console.log("➡️ CI UNDER NSM:", ciCodes);
+                    }
+
+                    /* --------------------------------------------------
+                       CH LEVEL
+                    -------------------------------------------------- */
+                    if (isNSM || isCI) {
+                        const chCodes = [...new Set(hierarchy.map(h => h.chCode).filter(Boolean))];
+                        console.log("➡️ CH UNDER USER:", chCodes);
+                    }
+
+                    /* --------------------------------------------------
+                       TM LEVEL
+                    -------------------------------------------------- */
+                    let tmCodes = [];
+
+                    if (isTM) {
+                        tmCodes = [userName];
+                        console.log("➡️ TM LOGIN → Only own TM:", tmCodes);
+                    } else {
+                        tmCodes = [...new Set(hierarchy.map(h => h.tmCode).filter(Boolean))];
+                        console.log("➡️ TM UNDER USER:", tmCodes);
+                    }
+
+                    /* --------------------------------------------------
+                       CUSTOMER LEVEL
+                    -------------------------------------------------- */
+                    const customers = await userCreation.find({
+                        userActivity: "CUSTOMER",
+                        tmCode: { $in: tmCodes }
+                    }).select("userName");
+
+                    customerCodes = customers.map(c => c.userName);
+
+                    console.log("➡️ CUSTOMERS UNDER TM:", customerCodes);
+                }
+                else if (userActivity === "ADMIN") {
+
+                    console.log("\n🔴 LOGIN LEVEL → ADMIN");
+                    console.log("📌 Fetching customerCodes directly from PDFs");
+
+                    // 1️⃣ Get UNIQUE customerCodes from pdfCreate
+                    const customerCodes = await pdfCreate.distinct("customerCode", {
+                        customerCode: { $ne: null }
+                    });
+
+                    console.log("👥 UNIQUE CUSTOMERS FROM PDFs:", customerCodes.length);
+
+                    if (!customerCodes.length) {
+                        return res.status(200).json({
+                            message: "No PDF data found",
+                            customerCodes: [],
+                            customerCount: 0,
+                            pdfCount: 0,
+                            responseData: []
+                        });
+                    }
+
+                    // 2️⃣ Fetch ALL PDFs for these customers
+                    const pdfResult = await pdfCreate.find({
+                        customerCode: { $in: customerCodes }
+                    });
+
+                    console.log("📄 TOTAL PDFs:", pdfResult.length);
+                    console.log("=============================================\n");
+
+                    return res.status(200).json({
+                        message: "Admin data fetched successfully",
+                        customerCodes,
+                        customerCount: customerCodes.length,
+                        pdfCount: pdfResult.length,
+                        responseData: pdfResult
+                    });
+                }
+
+                /* --------------------------------------------------
+                   FETCH PDFs
+                -------------------------------------------------- */
+                if (!customerCodes.length) {
+                    console.log("⚠️ No customers to fetch PDFs");
+                    return res.status(200).json({
+                        message: "No customers found",
+                        responseData: []
+                    });
+                }
+
+                const pdfResult = await pdfCreate.find({
+                    customerCode: { $in: customerCodes }
+                });
+
+                console.log("\n📄 PDF RESULT");
+                console.log("🧾 Customer Count:", customerCodes.length);
+                console.log("🧾 PDF Count:", pdfResult.length);
+                console.log("=============================================\n");
+
+                return res.status(200).json({
+                    message: "Data fetched successfully",
+                    customerCodes: customerCodes,
+                    customerCount: customerCodes.length,
+                    pdfCount: pdfResult.length,
+                    responseData: pdfResult
+                });
+
+            } catch (error) {
+                console.error("🚨 Error in fetchBasedonInput:", error);
+                return res.status(500).json({
+                    message: "Internal Server Error"
+                });
+            }
+        },
+        stateList: async (req, res) => {
+            console.log("state enter into");
+            try {
+                const stateList = await statee.find();
+                console.log("state", stateList);
+                res.status(200).json({
+                    
+                        message: "State fetched successfully",
+                        data: stateList,
+                        status: 200
+                    
+                });
+            } catch (err) {
+                console.error("Error fetching state list:", err);
+                res.status(500).json({
+                    error: "Failed to fetch state list",
+                    status: 500
+                });
+            }
+        },
+         crPassword: async (req, res) => {
+            console.log("resetPassword req.body", req.body)
+            try {
+                const { userUniqueId, userName, currentPassword, newPassword, confirmPassword } = req.body;
+
+                // Check if user exists
+                const user = await userCreation.findOne({ userName });
+                if (!user) {
+                    return res.status(404).json({ message: "User not found", status: 404 });
+                }
+
+                // Verify current password (since no hashing, we do a direct comparison)
+                if (user.userPassword !== currentPassword) {
+                    return res.status(400).json({ message: "Current password is incorrect", status: 400 });
+                }
+
+                // Check if new password and confirm password match
+                if (newPassword !== confirmPassword) {
+                    return res.status(400).json({ message: "Please check New password and confirm password", status: 400 });
+                }
+
+                // Update password in database
+                user.userPassword = newPassword;
+                user.userConfirmPassword = confirmPassword;
+                await user.save();
+
+                res.status(200).json({ message: "Password Changed or Reset successfully. please login again ", status: 200 });
+
+            } catch (error) {
+                res.status(500).json({ message: "Failed to reset password", status: 500, error: error.message });
+            }
+        },
+
 
 
     };

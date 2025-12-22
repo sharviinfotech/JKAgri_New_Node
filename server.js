@@ -4,8 +4,7 @@ const connectDB = require("./config/db");
 const bodyParser = require('body-parser');
 const { readExcelFile } = require('./fileReader');
 const { startPdfProcessing } = require('./pdfReader');
-// const {startReadingEcelsFiles } = require('./readDashboardData')
-
+// const { startReadingEcelsFiles } = require('./readDashboardData');
 const app = express();
 // const PORT = process.env.PORT || 3000;
 // const SERVER_URL = process.env.SERVER_URL || "http://192.168.13.64";
@@ -31,8 +30,9 @@ app.use(express.json());
     // Process files after DB connection
     // readExcelFile();
     startPdfProcessing();
+    // await startReadingEcelsFiles(); 
     require("./useractivityreader");
-    // startReadingEcelsFiles()
+    require("./excelCron");
     // Start server only after DB is ready
     app.listen(BASE_PORT, () => {
      console.log(`🚀 Server running on ${BASE_SERVER_URL}:${BASE_PORT}`);

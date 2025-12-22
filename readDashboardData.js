@@ -1,7 +1,7 @@
 const XLSX = require("xlsx");
 const fs = require("fs");
 const path = require("path");
-const { DashboardData } = require("./models/userCreationModel");
+const { DashboardData } = require('./models/userCreationModel');
 
 const EXCEL_FOLDER_PATH = "D:/";
 const EXCEL_FILE_NAME = "Dashboard.xlsx";
@@ -9,7 +9,7 @@ const SHEET_NAME = "Dashboard_Data";
 
 const startReadingEcelsFiles = async () => {
   try {
-    console.log("📊 Reading Dashboard Excel...");
+    console.log("📊 Excel Reader Started...");
 
     const filePath = path.join(EXCEL_FOLDER_PATH, EXCEL_FILE_NAME);
 
@@ -22,7 +22,7 @@ const startReadingEcelsFiles = async () => {
     const sheet = workbook.Sheets[SHEET_NAME];
 
     if (!sheet) {
-      console.error("❌ Sheet 'Dashboard_Data' not found");
+      console.error("❌ Sheet not found:", SHEET_NAME);
       return;
     }
 
@@ -35,7 +35,6 @@ const startReadingEcelsFiles = async () => {
 
     const payload = rows.map(row => ({
       customerCode: row["Customer Code"],
-
       totalValue: row["Total Value"],
       crnValue: row["Crn Value"],
       drnValue: row["Drn Value"],
@@ -44,19 +43,17 @@ const startReadingEcelsFiles = async () => {
       commercialValue: row["Commericial Value"],
       absValue: row["ABS Value"],
       outstandingValue: row["Outstanding Value"],
-
-      savedAt: new Date()
+      dataLastUpdatedOn: new Date()
     }));
 
-    // OPTIONAL: clear old data before insert
+    // 🔁 Replace old data with new data
     await DashboardData.deleteMany({});
-
     await DashboardData.insertMany(payload);
 
-    console.log(`✅ Dashboard data saved (${payload.length} records)`);
+    console.log(`✅ Excel data synced (${payload.length} records)`);
 
-  } catch (error) {
-    console.error("🔥 Excel Processing Failed:", error.message);
+  } catch (err) {
+    console.error("❌ Excel Reader Error:", err.message);
   }
 };
 
