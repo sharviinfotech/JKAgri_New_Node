@@ -1,7 +1,7 @@
 const fs = require("fs");
 const axios = require("axios");
 const path = require("path");
-
+const cron = require('node-cron');
 const PDF_FOLDER_PATH = "D:/jk_pdfs";
 const { BASE_SERVER_URL, BASE_PORT } = require("./baseFile");
 
@@ -174,11 +174,11 @@ const processAndSendPdfs = async () => {
           {
             maxContentLength: Infinity,
             maxBodyLength: Infinity,
-            timeout: 5 * 60 * 1000 // 5 minutes
+            // timeout: 5 * 60 * 1000 // 5 minutes
           }
         );
 
-        console.log(`✅ Uploaded: ${file} (${customerCode})`);
+        console.log(`✅ Uploaded pdfReaderfile: ${file} (${customerCode})`);
 
       } catch (err) {
         console.error(
@@ -194,20 +194,87 @@ const processAndSendPdfs = async () => {
 };
 
 // Scheduler to run PDF sync repeatedly
-const startPdfProcessing = () => {
-  console.log("🚀 Running PDF sync now...");
+// const startPdfProcessing = () => {
+//   console.log("🚀 Running PDF sync now...");
 
-  processAndSendPdfs().then(() => {
-    console.log("✅ Initial PDF sync complete. Scheduling every 1 minute...");
+//   processAndSendPdfs().then(() => {
+//     console.log("✅ Initial PDF sync complete. Scheduling every 1 minute...");
 
-    setInterval(() => {
-      console.log("⏳ Checking for new PDFs...");
-      processAndSendPdfs();
-    }, 60 * 1000); // Every 60 seconds
-  });
-};
+//     setInterval(() => {
+//       console.log("⏳ Checking for new PDFs...");
+//       processAndSendPdfs();
+//     }, 60 * 1000); // Every 60 seconds
+//   });
+// };
+let isProcessing = false;
 
-module.exports = { startPdfProcessing };
+// const startPdfProcessing = () => {
+//   console.log("🚀 PDFREADER FILE Cron Scheduler Initialized...");
+
+//   // Schedule task to run every minute
+//   // Syntax: '* * * * *' (Minute, Hour, Day of Month, Month, Day of Week)
+//   cron.schedule('* * * * *', async () => {
+//     if (isProcessing) {
+//       console.log("⏳ Previous task still running, skipping this minute.");
+//       return;
+//     }
+
+//     isProcessing = true;
+//     console.log(`⏰ Cron Triggered at: ${new Date().toLocaleString()}`);
+
+//     try {
+//       await processAndSendPdfs();
+//       console.log("✅ PDF sync for Every one minute task finished successfully.");
+//     } catch (err) {
+//       console.error("❌ Cron Job Error:", err);
+//     } finally {
+//       isProcessing = false;
+//     }
+//   });
+
+
+//    cron.schedule('* 5 * * *', async () => {
+//        console.log("********* night  5 AM started ")
+//     if (isProcessing) {
+//       console.log("⏳ Previous task still running, skipping this minute.");
+//       return;
+//     }
+
+//     isProcessing = true;
+//     console.log(`⏰ Cron Triggered at: ${new Date().toLocaleString()}`);
+
+//     try {
+//       await processAndSendPdfs();
+//       console.log("✅ PDF sync for Every morning 5 AM  task finished successfully.");
+//     } catch (err) {
+//       console.error("❌ Cron Job Error:", err);
+//     } finally {
+//       isProcessing = false;
+//     }
+//   });
+
+
+//    cron.schedule('* 20 * * *', async () => {
+//     console.log("********* night  8 PM started ")
+//     if (isProcessing) {
+//       console.log("⏳ Previous task still running, skipping this minute.");
+//       return;
+//     }
+
+//     isProcessing = true;
+//     console.log(`⏰ Cron Triggered at: ${new Date().toLocaleString()}`);
+
+//     try {
+//       await processAndSendPdfs();
+//       console.log("✅ PDF sync Every morning 8 PM task finished successfully.");
+//     } catch (err) {
+//       console.error("❌ Cron Job Error:", err);
+//     } finally {
+//       isProcessing = false;
+//     }
+//   });
+// };
+module.exports = {processAndSendPdfs };
 
 
 // ---------------------------------------------------

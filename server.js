@@ -3,7 +3,7 @@ const cors = require("cors");
 const connectDB = require("./config/db");
 const bodyParser = require('body-parser');
 const { readExcelFile } = require('./fileReader');
-const { startPdfProcessing } = require('./pdfReader');
+// const { startPdfProcessing } = require('./pdfReader');
 // const { startReadingEcelsFiles } = require('./readDashboardData');
 const app = express();
 // const PORT = process.env.PORT || 3000;
@@ -29,7 +29,7 @@ app.use(express.json());
     app.use("/api", routes);
     // Process files after DB connection
     // readExcelFile();
-    startPdfProcessing();
+    // startPdfProcessing();
     // await startReadingEcelsFiles(); 
     require("./useractivityreader");
     require("./excelCron");
