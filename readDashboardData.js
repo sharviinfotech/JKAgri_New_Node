@@ -38,10 +38,10 @@ const startReadingEcelsFiles = async () => {
       totalValue: row["Total Value"],
       crnValue: row["Crn Value"],
       drnValue: row["Drn Value"],
-      invoiceValue: row["Invoice Value"],
+      invoiceValue: row["Inv Value"],
       soaValue: row["Soa Value"],
-      commercialValue: row["Commericial Value"],
-      absValue: row["ABS Value"],
+      balValue: row["Balcnf Value"],
+      absValue: row["Abs Value"],
       outstandingValue: row["Outstanding Value"],
       dataLastUpdatedOn: new Date()
     }));

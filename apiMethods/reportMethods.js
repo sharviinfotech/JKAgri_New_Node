@@ -1,5 +1,5 @@
 const axios = require('axios');
-const { userCreation, userCount, xlsxCreation, pdfCreate, QueriesData, QueriesCount, OrganizationHirarchy, OrgCount, DashboardData, outstandingSchema,statee } = require('../models/userCreationModel');
+const { userCreation, userCount, xlsxCreation, pdfCreate, QueriesData, QueriesCount, OrganizationHirarchy, OrgCount, DashboardData, outstandingSchema, statee } = require('../models/userCreationModel');
 const bcrypt = require('bcrypt');
 const jwt = require("jsonwebtoken");
 const moment = require('moment');
@@ -199,7 +199,7 @@ module.exports = (() => {
                     tmContact: user.tmContact ? user.tmContact : "",
                     chCode: user.chCode ? user.chCode : "",
                     chContact: user.chContact ? user.chContact : "",
-                    userState:user.userState
+                    userState: user.userState
                 };
 
                 const token = jwt.sign(
@@ -581,7 +581,7 @@ module.exports = (() => {
             console.log("userCreationSave", req, res)
             try {
                 console.log("req.body", req.body);
-                const { userName, userFirstName, userLastName, userEmail, userContact, userPassword, userConfirmPassword, userStatus, userActivity, tmCode, tmContact, chCode, chContact, ciCode, nsmCode,userState } = req.body;
+                const { userName, userFirstName, userLastName, userEmail, userContact, userPassword, userConfirmPassword, userStatus, userActivity, tmCode, tmContact, chCode, chContact, ciCode, nsmCode, userState } = req.body;
                 console.log("userPassword", userPassword, "userConfirmPassword", userConfirmPassword);
 
                 if (userPassword !== userConfirmPassword) {
@@ -615,7 +615,7 @@ module.exports = (() => {
                     userActivity,
                     userUniqueId,
                     tmCode, tmContact, chCode, chContact,
-                    ciCode, nsmCode,userState,
+                    ciCode, nsmCode, userState,
                     currentLoginAt: now,          // initialize to now
                     lastLoginAt: null,            // no previous login yet
                     last6MonthsStatus: true       // new user is active in last 6 months by default
@@ -851,7 +851,7 @@ module.exports = (() => {
 
                 return res.json({
                     message: "Data Fetched Successfully",
-                    data: formattedList,
+                    data: list,
                     status: 200
                 });
 
@@ -947,7 +947,7 @@ module.exports = (() => {
                     tmContact: user.tmContact,
                     chCode: user.chCode,
                     chContact: user.chContact,
-                    userState:user.userState
+                    userState: user.userState
                 }));
 
                 res.json({
@@ -1400,8 +1400,14 @@ module.exports = (() => {
                     });
                 }
 
+                // const pdfResult = await pdfCreate.find({
+                //     customerCode: { $in: customerCodes }
+                // });
                 const pdfResult = await pdfCreate.find({
-                    customerCode: { $in: customerCodes }
+                    $or: [
+                        { customerCode: { $in: customerCodes } },
+                        { fileName: { $regex: "^CP_", $options: "i" } }
+                    ]
                 });
 
                 console.log("\n📄 PDF RESULT");
@@ -1430,11 +1436,11 @@ module.exports = (() => {
                 const stateList = await statee.find();
                 console.log("state", stateList);
                 res.status(200).json({
-                    
-                        message: "State fetched successfully",
-                        data: stateList,
-                        status: 200
-                    
+
+                    message: "State fetched successfully",
+                    data: stateList,
+                    status: 200
+
                 });
             } catch (err) {
                 console.error("Error fetching state list:", err);
@@ -1444,7 +1450,7 @@ module.exports = (() => {
                 });
             }
         },
-         crPassword: async (req, res) => {
+        crPassword: async (req, res) => {
             console.log("resetPassword req.body", req.body)
             try {
                 const { userUniqueId, userName, currentPassword, newPassword, confirmPassword } = req.body;

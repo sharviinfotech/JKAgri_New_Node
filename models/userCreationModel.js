@@ -333,11 +333,12 @@ const DashboardSchema = new mongoose.Schema({
     drnValue: { type: Number, default: 0 },
     invoiceValue: { type: Number, default: 0 },
     soaValue: { type: Number, default: 0 },
-    commercialValue: { type: Number, default: 0 },
+    balValue: { type: Number, default: 0 },
     absValue: { type: Number, default: 0 },
     outstandingValue: { type: Number, default: 0 },
 
-    dataLastUpdatedOn: { type: Date, default: Date.now }
+    dataLastUpdatedOn: { type: Date }
+
 });
 
 const OutstandingSchema = new mongoose.Schema({

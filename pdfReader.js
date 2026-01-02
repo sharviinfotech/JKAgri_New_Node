@@ -139,9 +139,9 @@ const processAndSendPdfs = async () => {
 
       let customerCode = null;
       let docDate = null;
-      const DOC_TYPES = ["CRN", "DRN", "SOA", "INV", "COP", "ABS", "AR", "BAF"];
+      const DOC_TYPES = ["CRN", "DRN", "SOA", "INV", "CP", "ABS", "AR", "BALCNF"];
 
-      if (pdfName.startsWith("SOA_")) {
+      if (pdfName.startsWith("SOA_")|| pdfName.startsWith("BALCNF_")) {
         // SOA format: SOA_customerCode_date
         const parts = pdfName.split("_");
         customerCode = parts[1] || null;
