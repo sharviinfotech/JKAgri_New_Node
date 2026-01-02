@@ -6,6 +6,12 @@ const { DashboardData } = require('./models/userCreationModel');
 const EXCEL_FOLDER_PATH = "D:/";
 const EXCEL_FILE_NAME = "Dashboard.xlsx";
 const SHEET_NAME = "Dashboard_Data";
+function excelSerialToDate(serial) {
+  if (!serial || isNaN(serial)) return null;
+
+  const excelEpoch = new Date(1899, 11, 30);
+  return new Date(excelEpoch.getTime() + Number(serial) * 86400000);
+}
 
 const startReadingEcelsFiles = async () => {
   try {
@@ -43,7 +49,7 @@ const startReadingEcelsFiles = async () => {
       balValue: row["Balcnf Value"],
       absValue: row["Abs Value"],
       outstandingValue: row["Outstanding Value"],
-      dataLastUpdatedOn: new Date()
+      dataLastUpdatedOn: excelSerialToDate(row["Timestamp"])
     }));
 
     // 🔁 Replace old data with new data

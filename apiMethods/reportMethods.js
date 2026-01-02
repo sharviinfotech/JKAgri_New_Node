@@ -832,7 +832,6 @@ module.exports = (() => {
             try {
                 const { customerCode } = req.body;
 
-                // ✅ lean() gives plain objects
                 const list = await DashboardData.find({ customerCode }).lean();
 
                 if (!list.length) {
@@ -843,15 +842,16 @@ module.exports = (() => {
                     });
                 }
 
-                // ✅ format date here
                 const formattedList = list.map(item => ({
                     ...item,
-                    dataLastUpdatedOn: formatDate(item.dataLastUpdatedOn)
+                    dataLastUpdatedOn: formatDate(
+                        item.dataLastUpdatedOn ? new Date(item.dataLastUpdatedOn) : null
+                    )
                 }));
 
                 return res.json({
                     message: "Data Fetched Successfully",
-                    data: list,
+                    data: formattedList, // ✅ FIXED
                     status: 200
                 });
 
@@ -862,6 +862,7 @@ module.exports = (() => {
                 });
             }
         },
+
         outStandingDataList: async (req, res) => {
             try {
                 const { customerCode } = req.body;
