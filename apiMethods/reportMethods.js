@@ -1407,7 +1407,7 @@ module.exports = (() => {
                 const pdfResult = await pdfCreate.find({
                     $or: [
                         { customerCode: { $in: customerCodes } },
-                        { fileName: { $regex: "^CP_", $options: "i" } }
+                        { fileName: { $regex: "^(CP|ABS)_", $options: "i" } }
                     ]
                 });
 
