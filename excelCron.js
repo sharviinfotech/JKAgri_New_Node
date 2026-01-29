@@ -48,11 +48,11 @@ const runFullSync = async (label) => {
 };
 
 // Schedules
-cron.schedule("0 5 * * *", () => runFullSync("5 AM Morning Sync"));
+//cron.schedule("* * * * *", () => runFullSync("5 AM Morning Sync"));
 cron.schedule("0 20 * * *", () => runFullSync("8 PM Night Sync"));
 
 // For testing (Uncomment if needed)
-cron.schedule("* * * * *", () => runFullSync("Minute Sync"));
+cron.schedule("5 12 * * *", () => runFullSync("Minute Sync"));
 
 
 
@@ -82,5 +82,5 @@ const runUsersyn = async (label) => {
 cron.schedule("0 5 15 * *", () => runUsersyn("15th on month Sync"));
 
 // For testing (Uncomment if needed)
-cron.schedule("* * * * *", () => runUsersyn("Minute Sync"));
+// cron.schedule("* * * * *", () => runUsersyn("Minute Sync"));
 

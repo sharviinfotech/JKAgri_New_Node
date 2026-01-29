@@ -1431,6 +1431,118 @@ module.exports = (() => {
                 });
             }
         },
+
+        // new chages beacuse not working as except
+
+        fetchBasedonInput: async (req, res) => {
+            try {
+                const { userName, userActivity } = req.body;
+
+                console.log("\n================ LOGIN REQUEST ================");
+                console.log("🟢 User:", userName, "| Activity:", userActivity);
+
+                let customerCodes = [];
+
+                if (userActivity === "CUSTOMER") {
+                    customerCodes = [userName];
+                    console.log("👤 LEVEL: CUSTOMER | Code:", customerCodes);
+                }
+                else if (userActivity === "USER") {
+                    // 1. Find the full hierarchy where this user exists in ANY role
+                    const fullHierarchy = await OrganizationHirarchy.find({
+                        $or: [
+                            { nsmCode: userName },
+                            { ciCode: userName },
+                            { chCode: userName },
+                            { tmCode: userName }
+                        ]
+                    });
+
+                    if (!fullHierarchy.length) {
+                        return res.status(200).json({ message: "No hierarchy found", responseData: [] });
+                    }
+
+                    // 2. Determine the user's highest role in the found records
+                    const isNSM = fullHierarchy.some(h => h.nsmCode === userName);
+                    const isCI = fullHierarchy.some(h => h.ciCode === userName);
+                    const isCH = fullHierarchy.some(h => h.chCode === userName);
+                    const isTM = fullHierarchy.some(h => h.tmCode === userName);
+
+                    // 3. Drill Down & Logging
+                    console.log("\n--- HIERARCHY DRILL DOWN ---");
+
+                    // Filter the hierarchy based on the logged-in user's role to get descendants
+                    let filteredHierarchy = [];
+                    if (isNSM) {
+                        console.log("🔹 ROLE: NSM");
+                        filteredHierarchy = fullHierarchy.filter(h => h.nsmCode === userName);
+                    } else if (isCI) {
+                        console.log("🔹 ROLE: CI");
+                        filteredHierarchy = fullHierarchy.filter(h => h.ciCode === userName);
+                    } else if (isCH) {
+                        console.log("🔹 ROLE: CH");
+                        filteredHierarchy = fullHierarchy.filter(h => h.chCode === userName);
+                    } else {
+                        console.log("🔹 ROLE: TM");
+                        filteredHierarchy = fullHierarchy.filter(h => h.tmCode === userName);
+                    }
+
+                    // Extract unique codes for logging
+                    const ciList = [...new Set(filteredHierarchy.map(h => h.ciCode).filter(Boolean))];
+                    const chList = [...new Set(filteredHierarchy.map(h => h.chCode).filter(Boolean))];
+                    const tmList = [...new Set(filteredHierarchy.map(h => h.tmCode).filter(Boolean))];
+
+                    console.log("📍 CIs Under User:", ciList);
+                    console.log("📍 CHs Under User:", chList);
+                    console.log("📍 TMs Under User:", tmList);
+
+                    // 4. Fetch Customers linked to these TMs
+                    const customers = await userCreation.find({
+                        userActivity: "CUSTOMER",
+                        tmCode: { $in: tmList }
+                    }).select("userName");
+
+                    customerCodes = customers.map(c => c.userName);
+                    console.log("👥 CUSTOMERS FOUND:", customerCodes.length);
+                    console.log("👥 CUSTOMERS FOUND LIST:", customerCodes);
+                }
+                else if (userActivity === "ADMIN") {
+                    // ... (Your Admin logic remains the same)
+                }
+
+                /* --------------------------------------------------
+                   FETCH PDFs BASED ON COLLECTED CUSTOMER CODES
+                -------------------------------------------------- */
+                if (!customerCodes.length) {
+                    return res.status(200).json({ message: "No customers found", responseData: [] });
+                }
+
+                const pdfResult = await pdfCreate.find({
+                    $or: [
+                        { customerCode: { $in: customerCodes } },
+                        { fileName: { $regex: "^(CP|ABS)_", $options: "i" } }
+                    ]
+                });
+
+                console.log("\n📄 PDF RESULT");
+                console.log("🧾 Customer Count:", customerCodes.length);
+                console.log("🧾 Customer List", customerCodes);
+                console.log("🧾 PDF Count:", pdfResult.length);
+                console.log("=============================================\n");
+
+                return res.status(200).json({
+                    message: "Data fetched successfully",
+                    customerCodes: customerCodes,
+                    customerCount: customerCodes.length,
+                    pdfCount: pdfResult.length,
+                    responseData: pdfResult
+                });
+
+            } catch (error) {
+                console.error("🚨 Error:", error);
+                return res.status(500).json({ message: "Internal Server Error" });
+            }
+        },
         stateList: async (req, res) => {
             console.log("state enter into");
             try {

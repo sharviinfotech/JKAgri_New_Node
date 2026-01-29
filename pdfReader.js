@@ -181,10 +181,10 @@ const processAndSendPdfs = async () => {
         console.log(`✅ Uploaded pdfReaderfile: ${file} (${customerCode})`);
 
       } catch (err) {
-        console.error(
-          `🚨 Upload failed: ${file}`,
-          err?.response?.data || err.message
-        );
+        // console.error(
+        //   `🚨 Upload failed: ${file}`,
+        //   err?.response?.data || err.message
+        // );
       }
     }
 
