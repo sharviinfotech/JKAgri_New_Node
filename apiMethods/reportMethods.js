@@ -1247,190 +1247,190 @@ module.exports = (() => {
         //     }
         // }
         // below is the working code 17-12-2025 for console logs added below 
-        fetchBasedonInput: async (req, res) => {
-            try {
-                const { userName, userActivity } = req.body;
+        // fetchBasedonInput: async (req, res) => {
+        //     try {
+        //         const { userName, userActivity } = req.body;
 
-                console.log("\n================ LOGIN REQUEST ================");
-                console.log("🟢 userName:", userName);
-                console.log("🟢 userActivity:", userActivity);
+        //         console.log("\n================ LOGIN REQUEST ================");
+        //         console.log("🟢 userName:", userName);
+        //         console.log("🟢 userActivity:", userActivity);
 
-                let customerCodes = [];
+        //         let customerCodes = [];
 
-                /* --------------------------------------------------
-                   1️⃣ CUSTOMER LOGIN
-                -------------------------------------------------- */
-                if (userActivity === "CUSTOMER") {
+        //         /* --------------------------------------------------
+        //            1️⃣ CUSTOMER LOGIN
+        //         -------------------------------------------------- */
+        //         if (userActivity === "CUSTOMER") {
 
-                    console.log("🔵 LOGIN LEVEL → CUSTOMER");
-                    console.log("📌 Direct customer access");
+        //             console.log("🔵 LOGIN LEVEL → CUSTOMER");
+        //             console.log("📌 Direct customer access");
 
-                    customerCodes = [userName];
+        //             customerCodes = [userName];
 
-                    console.log("👤 CUSTOMER CODE:", customerCodes);
-                }
+        //             console.log("👤 CUSTOMER CODE:", customerCodes);
+        //         }
 
-                /* --------------------------------------------------
-                   2️⃣ USER LOGIN (NSM / CI / CH / TM)
-                -------------------------------------------------- */
-                else if (userActivity === "USER") {
+        //         /* --------------------------------------------------
+        //            2️⃣ USER LOGIN (NSM / CI / CH / TM)
+        //         -------------------------------------------------- */
+        //         else if (userActivity === "USER") {
 
-                    console.log("\n🔵 LOGIN LEVEL → USER");
-                    console.log("🔍 Fetching hierarchy mapping...");
+        //             console.log("\n🔵 LOGIN LEVEL → USER");
+        //             console.log("🔍 Fetching hierarchy mapping...");
 
-                    const hierarchy = await OrganizationHirarchy.find({
-                        $or: [
-                            { nsmCode: userName },
-                            { ciCode: userName },
-                            { chCode: userName },
-                            { tmCode: userName }
-                        ]
-                    });
+        //             const hierarchy = await OrganizationHirarchy.find({
+        //                 $or: [
+        //                     { nsmCode: userName },
+        //                     { ciCode: userName },
+        //                     { chCode: userName },
+        //                     { tmCode: userName }
+        //                 ]
+        //             });
 
-                    if (!hierarchy.length) {
-                        console.log("⚠️ No hierarchy found");
-                        return res.status(200).json({
-                            message: "No hierarchy mapping found",
-                            responseData: []
-                        });
-                    }
+        //             if (!hierarchy.length) {
+        //                 console.log("⚠️ No hierarchy found");
+        //                 return res.status(200).json({
+        //                     message: "No hierarchy mapping found",
+        //                     responseData: []
+        //                 });
+        //             }
 
-                    console.log("📊 Hierarchy rows found:", hierarchy.length);
+        //             console.log("📊 Hierarchy rows found:", hierarchy.length);
 
-                    const isNSM = hierarchy.some(h => h.nsmCode === userName);
-                    const isCI = hierarchy.some(h => h.ciCode === userName);
-                    const isCH = hierarchy.some(h => h.chCode === userName);
-                    const isTM = hierarchy.some(h => h.tmCode === userName);
+        //             const isNSM = hierarchy.some(h => h.nsmCode === userName);
+        //             const isCI = hierarchy.some(h => h.ciCode === userName);
+        //             const isCH = hierarchy.some(h => h.chCode === userName);
+        //             const isTM = hierarchy.some(h => h.tmCode === userName);
 
-                    /* --------------------------------------------------
-                       Identify login level
-                    -------------------------------------------------- */
-                    if (isNSM) console.log("🔷 LOGIN AS → NSM");
-                    else if (isCI) console.log("🔷 LOGIN AS → CI");
-                    else if (isCH) console.log("🔷 LOGIN AS → CH");
-                    else if (isTM) console.log("🔷 LOGIN AS → TM");
+        //             /* --------------------------------------------------
+        //                Identify login level
+        //             -------------------------------------------------- */
+        //             if (isNSM) console.log("🔷 LOGIN AS → NSM");
+        //             else if (isCI) console.log("🔷 LOGIN AS → CI");
+        //             else if (isCH) console.log("🔷 LOGIN AS → CH");
+        //             else if (isTM) console.log("🔷 LOGIN AS → TM");
 
-                    /* --------------------------------------------------
-                       CI LEVEL
-                    -------------------------------------------------- */
-                    if (isNSM) {
-                        const ciCodes = [...new Set(hierarchy.map(h => h.ciCode).filter(Boolean))];
-                        console.log("➡️ CI UNDER NSM:", ciCodes);
-                    }
+        //             /* --------------------------------------------------
+        //                CI LEVEL
+        //             -------------------------------------------------- */
+        //             if (isNSM) {
+        //                 const ciCodes = [...new Set(hierarchy.map(h => h.ciCode).filter(Boolean))];
+        //                 console.log("➡️ CI UNDER NSM:", ciCodes);
+        //             }
 
-                    /* --------------------------------------------------
-                       CH LEVEL
-                    -------------------------------------------------- */
-                    if (isNSM || isCI) {
-                        const chCodes = [...new Set(hierarchy.map(h => h.chCode).filter(Boolean))];
-                        console.log("➡️ CH UNDER USER:", chCodes);
-                    }
+        //             /* --------------------------------------------------
+        //                CH LEVEL
+        //             -------------------------------------------------- */
+        //             if (isNSM || isCI) {
+        //                 const chCodes = [...new Set(hierarchy.map(h => h.chCode).filter(Boolean))];
+        //                 console.log("➡️ CH UNDER USER:", chCodes);
+        //             }
 
-                    /* --------------------------------------------------
-                       TM LEVEL
-                    -------------------------------------------------- */
-                    let tmCodes = [];
+        //             /* --------------------------------------------------
+        //                TM LEVEL
+        //             -------------------------------------------------- */
+        //             let tmCodes = [];
 
-                    if (isTM) {
-                        tmCodes = [userName];
-                        console.log("➡️ TM LOGIN → Only own TM:", tmCodes);
-                    } else {
-                        tmCodes = [...new Set(hierarchy.map(h => h.tmCode).filter(Boolean))];
-                        console.log("➡️ TM UNDER USER:", tmCodes);
-                    }
+        //             if (isTM) {
+        //                 tmCodes = [userName];
+        //                 console.log("➡️ TM LOGIN → Only own TM:", tmCodes);
+        //             } else {
+        //                 tmCodes = [...new Set(hierarchy.map(h => h.tmCode).filter(Boolean))];
+        //                 console.log("➡️ TM UNDER USER:", tmCodes);
+        //             }
 
-                    /* --------------------------------------------------
-                       CUSTOMER LEVEL
-                    -------------------------------------------------- */
-                    const customers = await userCreation.find({
-                        userActivity: "CUSTOMER",
-                        tmCode: { $in: tmCodes }
-                    }).select("userName");
+        //             /* --------------------------------------------------
+        //                CUSTOMER LEVEL
+        //             -------------------------------------------------- */
+        //             const customers = await userCreation.find({
+        //                 userActivity: "CUSTOMER",
+        //                 tmCode: { $in: tmCodes }
+        //             }).select("userName");
 
-                    customerCodes = customers.map(c => c.userName);
+        //             customerCodes = customers.map(c => c.userName);
 
-                    console.log("➡️ CUSTOMERS UNDER TM:", customerCodes);
-                }
-                else if (userActivity === "ADMIN") {
+        //             console.log("➡️ CUSTOMERS UNDER TM:", customerCodes);
+        //         }
+        //         else if (userActivity === "ADMIN") {
 
-                    console.log("\n🔴 LOGIN LEVEL → ADMIN");
-                    console.log("📌 Fetching customerCodes directly from PDFs");
+        //             console.log("\n🔴 LOGIN LEVEL → ADMIN");
+        //             console.log("📌 Fetching customerCodes directly from PDFs");
 
-                    // 1️⃣ Get UNIQUE customerCodes from pdfCreate
-                    const customerCodes = await pdfCreate.distinct("customerCode", {
-                        customerCode: { $ne: null }
-                    });
+        //             // 1️⃣ Get UNIQUE customerCodes from pdfCreate
+        //             const customerCodes = await pdfCreate.distinct("customerCode", {
+        //                 customerCode: { $ne: null }
+        //             });
 
-                    console.log("👥 UNIQUE CUSTOMERS FROM PDFs:", customerCodes.length);
+        //             console.log("👥 UNIQUE CUSTOMERS FROM PDFs:", customerCodes.length);
 
-                    if (!customerCodes.length) {
-                        return res.status(200).json({
-                            message: "No PDF data found",
-                            customerCodes: [],
-                            customerCount: 0,
-                            pdfCount: 0,
-                            responseData: []
-                        });
-                    }
+        //             if (!customerCodes.length) {
+        //                 return res.status(200).json({
+        //                     message: "No PDF data found",
+        //                     customerCodes: [],
+        //                     customerCount: 0,
+        //                     pdfCount: 0,
+        //                     responseData: []
+        //                 });
+        //             }
 
-                    // 2️⃣ Fetch ALL PDFs for these customers
-                    const pdfResult = await pdfCreate.find({
-                        customerCode: { $in: customerCodes }
-                    });
+        //             // 2️⃣ Fetch ALL PDFs for these customers
+        //             const pdfResult = await pdfCreate.find({
+        //                 customerCode: { $in: customerCodes }
+        //             });
 
-                    console.log("📄 TOTAL PDFs:", pdfResult.length);
-                    console.log("=============================================\n");
+        //             console.log("📄 TOTAL PDFs:", pdfResult.length);
+        //             console.log("=============================================\n");
 
-                    return res.status(200).json({
-                        message: "Admin data fetched successfully",
-                        customerCodes,
-                        customerCount: customerCodes.length,
-                        pdfCount: pdfResult.length,
-                        responseData: pdfResult
-                    });
-                }
+        //             return res.status(200).json({
+        //                 message: "Admin data fetched successfully",
+        //                 customerCodes,
+        //                 customerCount: customerCodes.length,
+        //                 pdfCount: pdfResult.length,
+        //                 responseData: pdfResult
+        //             });
+        //         }
 
-                /* --------------------------------------------------
-                   FETCH PDFs
-                -------------------------------------------------- */
-                if (!customerCodes.length) {
-                    console.log("⚠️ No customers to fetch PDFs");
-                    return res.status(200).json({
-                        message: "No customers found",
-                        responseData: []
-                    });
-                }
+        //         /* --------------------------------------------------
+        //            FETCH PDFs
+        //         -------------------------------------------------- */
+        //         if (!customerCodes.length) {
+        //             console.log("⚠️ No customers to fetch PDFs");
+        //             return res.status(200).json({
+        //                 message: "No customers found",
+        //                 responseData: []
+        //             });
+        //         }
 
-                // const pdfResult = await pdfCreate.find({
-                //     customerCode: { $in: customerCodes }
-                // });
-                const pdfResult = await pdfCreate.find({
-                    $or: [
-                        { customerCode: { $in: customerCodes } },
-                        { fileName: { $regex: "^(CP|ABS)_", $options: "i" } }
-                    ]
-                });
+        //         // const pdfResult = await pdfCreate.find({
+        //         //     customerCode: { $in: customerCodes }
+        //         // });
+        //         const pdfResult = await pdfCreate.find({
+        //             $or: [
+        //                 { customerCode: { $in: customerCodes } },
+        //                 { fileName: { $regex: "^(CP|ABS)_", $options: "i" } }
+        //             ]
+        //         });
 
-                console.log("\n📄 PDF RESULT");
-                console.log("🧾 Customer Count:", customerCodes.length);
-                console.log("🧾 PDF Count:", pdfResult.length);
-                console.log("=============================================\n");
+        //         console.log("\n📄 PDF RESULT");
+        //         console.log("🧾 Customer Count:", customerCodes.length);
+        //         console.log("🧾 PDF Count:", pdfResult.length);
+        //         console.log("=============================================\n");
 
-                return res.status(200).json({
-                    message: "Data fetched successfully",
-                    customerCodes: customerCodes,
-                    customerCount: customerCodes.length,
-                    pdfCount: pdfResult.length,
-                    responseData: pdfResult
-                });
+        //         return res.status(200).json({
+        //             message: "Data fetched successfully",
+        //             customerCodes: customerCodes,
+        //             customerCount: customerCodes.length,
+        //             pdfCount: pdfResult.length,
+        //             responseData: pdfResult
+        //         });
 
-            } catch (error) {
-                console.error("🚨 Error in fetchBasedonInput:", error);
-                return res.status(500).json({
-                    message: "Internal Server Error"
-                });
-            }
-        },
+        //     } catch (error) {
+        //         console.error("🚨 Error in fetchBasedonInput:", error);
+        //         return res.status(500).json({
+        //             message: "Internal Server Error"
+        //         });
+        //     }
+        // },
 
         // new chages beacuse not working as except
 

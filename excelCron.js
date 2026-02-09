@@ -1,6 +1,6 @@
 const cron = require("node-cron");
-const { startReadingEcelsFiles } = require("./readDashboardData");
-const { startReadingEcelsOutStandingFiles } = require("./readOutstandingData");
+const { startReadingCsvFile } = require("./readDashboardData");
+const { startReadingCsvOutStandingFiles } = require("./readOutstandingData");
 const { processAndDeleteSOA } = require("./pdfSOAController");
 const { processAndSendPdfs } = require("./pdfReader"); 
 const { processOrganizationCSV,processUserCSV } = require("./readOrganizationData");
@@ -32,8 +32,8 @@ const runFullSync = async (label) => {
 
         // STEP 2: Read Excel Data
         console.log("📊 Step 2: Reading Excel Files...");
-        await startReadingEcelsFiles();
-        await startReadingEcelsOutStandingFiles();
+        await startReadingCsvFile();
+        await startReadingCsvOutStandingFiles();
 
         // STEP 3: Process and Upload PDFs
         console.log("📤 Step 3: Processing/Uploading PDFs...");
@@ -48,7 +48,7 @@ const runFullSync = async (label) => {
 };
 
 // Schedules
-//cron.schedule("* * * * *", () => runFullSync("5 AM Morning Sync"));
+cron.schedule("03 12 * * *", () => runFullSync("5 AM Morning Sync"));
 cron.schedule("0 20 * * *", () => runFullSync("8 PM Night Sync"));
 
 // For testing (Uncomment if needed)
