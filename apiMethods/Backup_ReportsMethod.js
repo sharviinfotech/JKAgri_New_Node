@@ -1434,196 +1434,387 @@ module.exports = (() => {
 
         // new chages beacuse not working as except
 
-        fetchBasedonInput: async (req, res) => {
-            try {
-                const { userName, userActivity } = req.body;
+        // fetchBasedonInput: async (req, res) => {
+        //     try {
+        //         const { userName, userActivity } = req.body;
 
-                console.log("\n================ LOGIN REQUEST ================");
-                console.log("🟢 User:", userName, "| Activity:", userActivity);
+        //         console.log("\n================ LOGIN REQUEST ================");
+        //         console.log("🟢 User:", userName, "| Activity:", userActivity);
+
+        //         let customerCodes = [];
+
+        //         if (userActivity === "CUSTOMER") {
+        //             customerCodes = [userName];
+        //             console.log("👤 LEVEL: CUSTOMER | Code:", customerCodes);
+        //         }
+        //         else if (userActivity === "USER") {
+        //             // 1. Find the full hierarchy where this user exists in ANY role
+        //             const fullHierarchy = await OrganizationHirarchy.find({
+        //                 $or: [
+        //                     { nsmCode: userName },
+        //                     { ciCode: userName },
+        //                     { chCode: userName },
+        //                     { tmCode: userName }
+        //                 ]
+        //             });
+
+        //             if (!fullHierarchy.length) {
+        //                 return res.status(200).json({ message: "No hierarchy found", responseData: [] });
+        //             }
+
+        //             // 2. Determine the user's highest role in the found records
+        //             const isNSM = fullHierarchy.some(h => h.nsmCode === userName);
+        //             const isCI = fullHierarchy.some(h => h.ciCode === userName);
+        //             const isCH = fullHierarchy.some(h => h.chCode === userName);
+        //             const isTM = fullHierarchy.some(h => h.tmCode === userName);
+
+        //             // 3. Drill Down & Logging
+        //             console.log("\n--- HIERARCHY DRILL DOWN ---");
+
+        //             // Filter the hierarchy based on the logged-in user's role to get descendants
+        //             let filteredHierarchy = [];
+        //             if (isNSM) {
+        //                 console.log("🔹 ROLE: NSM");
+        //                 filteredHierarchy = fullHierarchy.filter(h => h.nsmCode === userName);
+        //             } else if (isCI) {
+        //                 console.log("🔹 ROLE: CI");
+        //                 filteredHierarchy = fullHierarchy.filter(h => h.ciCode === userName);
+        //             } else if (isCH) {
+        //                 console.log("🔹 ROLE: CH");
+        //                 filteredHierarchy = fullHierarchy.filter(h => h.chCode === userName);
+        //             } else {
+        //                 console.log("🔹 ROLE: TM");
+        //                 filteredHierarchy = fullHierarchy.filter(h => h.tmCode === userName);
+        //             }
+
+        //             // Extract unique codes for logging
+        //             const ciList = [...new Set(filteredHierarchy.map(h => h.ciCode).filter(Boolean))];
+        //             const chList = [...new Set(filteredHierarchy.map(h => h.chCode).filter(Boolean))];
+        //             const tmList = [...new Set(filteredHierarchy.map(h => h.tmCode).filter(Boolean))];
+
+        //             console.log("📍 CIs Under User:", ciList);
+        //             console.log("📍 CHs Under User:", chList);
+        //             console.log("📍 TMs Under User:", tmList);
+
+        //             // 4. Fetch Customers linked to these TMs
+        //             const customers = await userCreation.find({
+        //                 userActivity: "CUSTOMER",
+        //                 tmCode: { $in: tmList }
+        //             }).select("userName");
+
+        //             customerCodes = customers.map(c => c.userName);
+        //             console.log("👥 CUSTOMERS FOUND:", customerCodes.length);
+        //             console.log("👥 CUSTOMERS FOUND LIST:", customerCodes);
+        //         }
+        //         else if (userActivity === "ADMIN") {
+        //             // ... (Your Admin logic remains the same)
+        //         }
+
+        //         /* --------------------------------------------------
+        //            FETCH PDFs BASED ON COLLECTED CUSTOMER CODES
+        //         -------------------------------------------------- */
+        //         if (!customerCodes.length) {
+        //             return res.status(200).json({ message: "No customers found", responseData: [] });
+        //         }
+
+        //         const pdfResult = await pdfCreate.find({
+        //             $or: [
+        //                 { customerCode: { $in: customerCodes } },
+        //                 { fileName: { $regex: "^(CP|ABS)_", $options: "i" } }
+        //             ]
+        //         });
+
+        //         console.log("\n📄 PDF RESULT");
+        //         console.log("🧾 Customer Count:", customerCodes.length);
+        //         console.log("🧾 Customer List", customerCodes);
+        //         console.log("🧾 PDF Count:", pdfResult.length);
+        //         console.log("=============================================\n");
+
+        //         return res.status(200).json({
+        //             message: "Data fetched successfully",
+        //             customerCodes: customerCodes,
+        //             customerCount: customerCodes.length,
+        //             pdfCount: pdfResult.length,
+        //             responseData: pdfResult
+        //         });
+
+        //     } catch (error) {
+        //         console.error("🚨 Error:", error);
+        //         return res.status(500).json({ message: "Internal Server Error" });
+        //     }
+        // },
+
+        fetchCustomerPdf: async (req, res) => {
+            try {
+                const { userName } = req.body;
+
+                const customerCodes = [userName];
+
+                const pdfResult = await pdfCreate.find({
+                    customerCode: userName
+                })
+                    .limit(500) // ⚡ limit for fast response
+                    .lean();
+
+                const totalPdfCount = await pdfCreate.countDocuments({
+                    customerCode: userName
+                });
+
+                return res.status(200).json({
+                    message: "Customer data fetched",
+                    customerCodes,
+                    customerCount: 1,
+                    pdfCount: totalPdfCount,
+                    responseData: pdfResult
+                });
+
+            } catch (err) {
+                console.error("Error:", err);
+                return res.status(500).json({ message: "Internal Server Error" });
+            }
+        },
+        fetchHierarchyPdf: async (req, res) => {
+            try {
+                const { userName, userActivity, page = 1, limit = 500 } = req.body;
+
+                console.log("\n===== HIERARCHY LOGIN =====");
+                console.log("User:", userName, "| Role:", userActivity);
 
                 let customerCodes = [];
 
-                if (userActivity === "CUSTOMER") {
-                    customerCodes = [userName];
-                    console.log("👤 LEVEL: CUSTOMER | Code:", customerCodes);
+                // ✅ ADMIN → fetch all customers
+                if (userActivity === "ADMIN") {
+                    const customers = await userCreation.find({ userActivity: "CUSTOMER" })
+                        .select("userName")
+                        .lean();
+
+                    customerCodes = customers.map(c => c.userName);
                 }
-                else if (userActivity === "USER") {
-                    // 1. Find the full hierarchy where this user exists in ANY role
-                    const fullHierarchy = await OrganizationHirarchy.find({
+                else {
+                    const hierarchy = await OrganizationHirarchy.find({
                         $or: [
                             { nsmCode: userName },
                             { ciCode: userName },
                             { chCode: userName },
                             { tmCode: userName }
                         ]
-                    });
+                    }).lean();
 
-                    if (!fullHierarchy.length) {
+                    if (!hierarchy.length) {
                         return res.status(200).json({ message: "No hierarchy found", responseData: [] });
                     }
 
-                    // 2. Determine the user's highest role in the found records
-                    const isNSM = fullHierarchy.some(h => h.nsmCode === userName);
-                    const isCI = fullHierarchy.some(h => h.ciCode === userName);
-                    const isCH = fullHierarchy.some(h => h.chCode === userName);
-                    const isTM = fullHierarchy.some(h => h.tmCode === userName);
-
-                    // 3. Drill Down & Logging
-                    console.log("\n--- HIERARCHY DRILL DOWN ---");
-
-                    // Filter the hierarchy based on the logged-in user's role to get descendants
                     let filteredHierarchy = [];
-                    if (isNSM) {
-                        console.log("🔹 ROLE: NSM");
-                        filteredHierarchy = fullHierarchy.filter(h => h.nsmCode === userName);
-                    } else if (isCI) {
-                        console.log("🔹 ROLE: CI");
-                        filteredHierarchy = fullHierarchy.filter(h => h.ciCode === userName);
-                    } else if (isCH) {
-                        console.log("🔹 ROLE: CH");
-                        filteredHierarchy = fullHierarchy.filter(h => h.chCode === userName);
-                    } else {
-                        console.log("🔹 ROLE: TM");
-                        filteredHierarchy = fullHierarchy.filter(h => h.tmCode === userName);
+
+                    if (hierarchy.some(h => h.nsmCode === userName)) {
+                        filteredHierarchy = hierarchy.filter(h => h.nsmCode === userName);
+                    }
+                    else if (hierarchy.some(h => h.ciCode === userName)) {
+                        filteredHierarchy = hierarchy.filter(h => h.ciCode === userName);
+                    }
+                    else if (hierarchy.some(h => h.chCode === userName)) {
+                        filteredHierarchy = hierarchy.filter(h => h.chCode === userName);
+                    }
+                    else {
+                        filteredHierarchy = hierarchy.filter(h => h.tmCode === userName);
                     }
 
-                    // Extract unique codes for logging
-                    const ciList = [...new Set(filteredHierarchy.map(h => h.ciCode).filter(Boolean))];
-                    const chList = [...new Set(filteredHierarchy.map(h => h.chCode).filter(Boolean))];
                     const tmList = [...new Set(filteredHierarchy.map(h => h.tmCode).filter(Boolean))];
 
-                    console.log("📍 CIs Under User:", ciList);
-                    console.log("📍 CHs Under User:", chList);
-                    console.log("📍 TMs Under User:", tmList);
-
-                    // 4. Fetch Customers linked to these TMs
                     const customers = await userCreation.find({
                         userActivity: "CUSTOMER",
                         tmCode: { $in: tmList }
-                    }).select("userName");
+                    }).select("userName").lean();
 
                     customerCodes = customers.map(c => c.userName);
-                    console.log("👥 CUSTOMERS FOUND:", customerCodes.length);
-                    console.log("👥 CUSTOMERS FOUND LIST:", customerCodes);
-                }
-                else if (userActivity === "ADMIN") {
-
-                    console.log("\n🔴 LOGIN LEVEL → ADMIN");
-                    console.log("📌 Fetching customerCodes directly from PDFs");
-
-                    // 1️⃣ Get UNIQUE customerCodes from pdfCreate
-                    const customerCodes = await pdfCreate.distinct("customerCode", {
-                        customerCode: { $ne: null }
-                    });
-
-                    console.log("👥 UNIQUE CUSTOMERS FROM PDFs:", customerCodes.length);
-
-                    if (!customerCodes.length) {
-                        return res.status(200).json({
-                            message: "No PDF data found",
-                            customerCodes: [],
-                            customerCount: 0,
-                            pdfCount: 0,
-                            responseData: []
-                        });
-                    }
-
-                    // 2️⃣ Fetch ALL PDFs for these customers
-                    // const pdfResult = await pdfCreate.find({
-                    //     customerCode: { $in: customerCodes }
-                    // });
-                    const pdfResult = await pdfCreate.find(
-                        {
-                            $or: [
-                                { customerCode: { $in: customerCodes } },
-                                { fileName: { $regex: "^(CP|ABS)_", $options: "i" } }
-                            ]
-                        },
-                        {
-                            fileData: 0 ,  // ❌ exclude base64 PDF
-                            createdAt: 0,
-                            updatedAt:0
-                        }
-                    );
-
-                    console.log("📄 TOTAL PDFs:", pdfResult.length);
-                    console.log("=============================================\n");
-
-                    return res.status(200).json({
-                        message: "Admin data fetched successfully",
-                        customerCodes,
-                        customerCount: customerCodes.length,
-                        pdfCount: pdfResult.length,
-                        responseData: pdfResult
-                    });
                 }
 
-
-                /* --------------------------------------------------
-                   FETCH PDFs BASED ON COLLECTED CUSTOMER CODES
-                -------------------------------------------------- */
                 if (!customerCodes.length) {
                     return res.status(200).json({ message: "No customers found", responseData: [] });
                 }
 
-                // const pdfResult = await pdfCreate.find({
-                //     $or: [
-                //         { customerCode: { $in: customerCodes } },
-                //         { fileName: { $regex: "^(CP|ABS)_", $options: "i" } }
-                //     ]
-                // });
-                const pdfResult = await pdfCreate.find(
+                // ✅ Pagination
+                const skip = (page - 1) * limit;
+
+                const pdfResult = await pdfCreate.find({
+                    customerCode: { $in: customerCodes }
+                })
+                    .select("customerCode fileName createdAt")
+                    .skip(skip)
+                    .limit(limit)
+                    .lean();
+
+                // ✅ Total PDF Count
+                const totalPdfCount = await pdfCreate.countDocuments({
+                    customerCode: { $in: customerCodes }
+                });
+
+                // ✅ DASHBOARD COUNTS (FULL DATA, NOT PAGINATED)
+                const dashboardCounts = await pdfCreate.aggregate([
                     {
-                        $or: [
-                            { customerCode: { $in: customerCodes } },
-                            { fileName: { $regex: "^(CP|ABS)_", $options: "i" } }
-                        ]
+                        $match: {
+                            customerCode: { $in: customerCodes }
+                        }
                     },
                     {
-                        fileData: 0   // ❌ exclude base64 PDF
+                        $group: {
+                            _id: null,
+                            drnCount: { $sum: { $cond: [{ $regexMatch: { input: "$fileName", regex: /_DRN_/ } }, 1, 0] } },
+                            crnCount: { $sum: { $cond: [{ $regexMatch: { input: "$fileName", regex: /_CRN_/ } }, 1, 0] } },
+                            invCount: { $sum: { $cond: [{ $regexMatch: { input: "$fileName", regex: /_INV_/ } }, 1, 0] } },
+                            soaCount: { $sum: { $cond: [{ $regexMatch: { input: "$fileName", regex: /SOA_/ } }, 1, 0] } },
+                            balCount: { $sum: { $cond: [{ $regexMatch: { input: "$fileName", regex: /BALCNF_/ } }, 1, 0] } },
+                            cdCount: { $sum: { $cond: [{ $regexMatch: { input: "$fileName", regex: /_CD_/ } }, 1, 0] } },
+                            absCount: { $sum: { $cond: [{ $regexMatch: { input: "$fileName", regex: /ABS_/ } }, 1, 0] } },
+                            cpCount: { $sum: { $cond: [{ $regexMatch: { input: "$fileName", regex: /CP_/ } }, 1, 0] } }
+                        }
                     }
-                );
+                ]);
 
-                console.log("\n📄 PDF RESULT");
-                console.log("🧾 Customer Count:", customerCodes.length);
-                console.log("🧾 Customer List", customerCodes);
-                console.log("🧾 PDF Count:", pdfResult.length);
-                console.log("=============================================\n");
+                const counts = dashboardCounts[0] || {
+                    drnCount: 0,
+                    crnCount: 0,
+                    invCount: 0,
+                    soaCount: 0,
+                    balCount: 0,
+                    cdCount: 0,
+                    absCount: 0,
+                    cpCount: 0
+                };
+
+                const totalDocumentCount =
+                    counts.drnCount +
+                    counts.crnCount +
+                    counts.invCount +
+                    counts.soaCount +
+                    counts.absCount +
+                    counts.balCount +
+                    counts.cdCount +
+                    counts.cpCount;
 
                 return res.status(200).json({
-                    message: "Data fetched successfully",
-                    customerCodes: customerCodes,
-                    customerCount: customerCodes.length,
-                    pdfCount: pdfResult.length,
+                    message: "Hierarchy data fetched",
+                    customerCodesCount: customerCodes.length,
+                    pdfCount: totalPdfCount,
+                    page,
+                    limit,
+                    dashboardCounts: {
+                        ...counts,
+                        totalDocumentCount
+                    },
                     responseData: pdfResult
                 });
 
-            } catch (error) {
-                console.error("🚨 Error:", error);
+            } catch (err) {
+                console.error("Error:", err);
                 return res.status(500).json({ message: "Internal Server Error" });
             }
         },
-        getPdfName: async (req, res) => {
 
-            try {
-                const { pdfName } = req.body;
 
-                const pdf = await pdfCreate.findOne({ pdfName });
 
-                if (!pdf) {
-                    return res.status(404).json({ message: "PDF not found" });
-                }
+        // hirary new api
+        // fetchHierarchyPdf: async (req, res) => {
+        //     try {
+        //         const { userName, userActivity, page = 1, limit = 500 } = req.body;
 
-                return res.status(200).json({
-                    message: "PDF fetched successfully",
-                    fileData: pdf.fileData
-                });
+        //         console.log("\n===== HIERARCHY LOGIN =====");
+        //         console.log("User:", userName, "| Role:", userActivity);
 
-            } catch (error) {
-                console.error("Error:", error);
-                return res.status(500).json({ message: "Internal Server Error" });
-            }
-        },
+        //         let customerCodes = [];
+
+        //         // ✅ ADMIN → fetch all customers directly (no hierarchy scan)
+        //         if (userActivity === "ADMIN") {
+        //             const customers = await userCreation.find({ userActivity: "CUSTOMER" })
+        //                 .select("userName")
+        //                 .lean();
+
+        //             customerCodes = customers.map(c => c.userName);
+        //         }
+
+        //         // ✅ NSM / CI / CH / TM → hierarchy logic
+        //         else {
+        //             const hierarchy = await OrganizationHirarchy.find({
+        //                 $or: [
+        //                     { nsmCode: userName },
+        //                     { ciCode: userName },
+        //                     { chCode: userName },
+        //                     { tmCode: userName }
+        //                 ]
+        //             }).lean();
+
+        //             if (!hierarchy.length) {
+        //                 return res.status(200).json({ message: "No hierarchy found", responseData: [] });
+        //             }
+
+        //             let filteredHierarchy = [];
+
+        //             if (hierarchy.some(h => h.nsmCode === userName)) {
+        //                 filteredHierarchy = hierarchy.filter(h => h.nsmCode === userName);
+        //                 console.log("filteredHierarchy NSM",filteredHierarchy)
+        //             }
+        //             else if (hierarchy.some(h => h.ciCode === userName)) {
+        //                 filteredHierarchy = hierarchy.filter(h => h.ciCode === userName);
+        //                 console.log("filteredHierarchy CI",filteredHierarchy)
+        //             }
+        //             else if (hierarchy.some(h => h.chCode === userName)) {
+        //                 filteredHierarchy = hierarchy.filter(h => h.chCode === userName);
+        //                 console.log("filteredHierarchy CH",filteredHierarchy)
+        //             }
+        //             else {
+        //                 filteredHierarchy = hierarchy.filter(h => h.tmCode === userName);
+        //                 console.log("filteredHierarchy TM",filteredHierarchy)
+        //             }
+
+        //             const tmList = [...new Set(filteredHierarchy.map(h => h.tmCode).filter(Boolean))];
+
+        //             const customers = await userCreation.find({
+        //                 userActivity: "CUSTOMER",
+        //                 tmCode: { $in: tmList }
+        //             }).select("userName").lean();
+
+        //             customerCodes = customers.map(c => c.userName);
+        //         }
+
+        //         // ✅ If no customers
+        //         if (!customerCodes.length) {
+        //             return res.status(200).json({ message: "No customers found", responseData: [] });
+        //         }
+
+        //         // ✅ Pagination for fast response
+        //         const skip = (page - 1) * limit;
+
+        //         const pdfResult = await pdfCreate.find({
+        //             customerCode: { $in: customerCodes }
+        //         })
+        //             .select("customerCode fileName createdAt") // ⚡ fetch only needed fields
+        //             .skip(skip)
+        //             .limit(limit)
+        //             .lean();
+
+        //         const totalPdfCount = await pdfCreate.countDocuments({
+        //             customerCode: { $in: customerCodes }
+        //         });
+
+        //         return res.status(200).json({
+        //             message: "Hierarchy data fetched",
+        //             customerCodesCount: customerCodes.length,
+        //             pdfCount: totalPdfCount,
+        //             page,
+        //             limit,
+        //             responseData: pdfResult
+        //         });
+
+        //     } catch (err) {
+        //         console.error("Error:", err);
+        //         return res.status(500).json({ message: "Internal Server Error" });
+        //     }
+        // },
+
+
+
+
+
         stateList: async (req, res) => {
             console.log("state enter into");
             try {
@@ -1683,5 +1874,12 @@ module.exports = (() => {
 })();
 
 
+ // CUSTOMER API
+    router.post('/JkAgri/fetchCustomerPdf',userHandler.fetchCustomerPdf);
 
+    // HIERARCHY API (ADMIN / NSM / CI / CH / TM)
+    router.post('/JkAgri/fetchHierarchyPdf',userHandler.fetchHierarchyPdf);
+        // fetchCustomerPdf: (req, res) => userMethods.fetchCustomerPdf(req, res),
+
+        // fetchHierarchyPdf: (req, res) => userMethods.fetchHierarchyPdf(req, res),
 

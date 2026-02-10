@@ -22,8 +22,9 @@ module.exports = (() => {
     router.post('/JkAgri/getDashboardData', userHandler.getDashboarddata)
     router.post('/JkAgri/fetchDataBasedOnLogin', userHandler.fetchBasedonInput),
         router.post('/JkAgri/fetchOutstandingData', userHandler.outStandingDataList)
-          router.get('/JkAgri/stateList', userHandler.stateList);
-router.post('/JkAgri/ChangeORResetPassword',userHandler.crPassword);
+    router.get('/JkAgri/stateList', userHandler.stateList);
+    router.post('/JkAgri/ChangeORResetPassword', userHandler.crPassword);
+     router.post('/JkAgri/getPdfByName', userHandler.getPdfName),
     console.log('enter route')
 
     // router.post('/', userHandler.createUser);
