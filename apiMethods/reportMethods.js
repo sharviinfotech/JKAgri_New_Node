@@ -865,11 +865,29 @@ module.exports = (() => {
 
         outStandingDataList: async (req, res) => {
             try {
-                const { customerCode } = req.body;
+                // const { customerCode } = req.body;
 
-                // ✅ lean() gives plain objects
-                const list = await outstandingSchema.find({ customerCode }).lean();
-                console.log("outStandingDataList", list)
+                // // ✅ lean() gives plain objects
+                // const list = await outstandingSchema.find({ customerCode }).lean();
+                // console.log("outStandingDataList", list)
+
+
+                const { customerCodes } = req.body; // ✅ array
+
+                if (!customerCodes || !customerCodes.length) {
+                    return res.json({
+                        message: "Customer codes not provided",
+                        data: [],
+                        status: 400
+                    });
+                }
+
+                // ✅ Fetch all matching customers
+                const list = await outstandingSchema.find({
+                    customerCode: { $in: customerCodes }   // 🔥 IMPORTANT
+                }).lean();
+
+                console.log("outStandingDataList count:", list.length);
                 if (!list.length) {
                     return res.json({
                         message: "No Data Available",
@@ -1540,9 +1558,9 @@ module.exports = (() => {
                             ]
                         },
                         {
-                            fileData: 0 ,  // ❌ exclude base64 PDF
+                            fileData: 0,  // ❌ exclude base64 PDF
                             createdAt: 0,
-                            updatedAt:0
+                            updatedAt: 0
                         }
                     );
 
